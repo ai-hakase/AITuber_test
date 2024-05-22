@@ -142,7 +142,7 @@ def generate_audio(line, character, voice_synthesis_model):
 def generate_explanation_image(line):
     # グリーンバックの画像を読み込み、解説テキストを描画
     # 実際の画像生成処理は省略
-    explanation_image = r"C:\Users\okozk\Test\Gradio\Greenbak.png"
+    explanation_image = r"Asset/Greenbak.png"
     return explanation_image
 
 # 動画の録画を開始する関数（仮の実装）
