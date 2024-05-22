@@ -38,6 +38,7 @@ git clone https://github.com/ai-hakase/AITuber_test.git
 
 2. 必要なPythonパッケージをインストールします。
 ```
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -48,7 +49,7 @@ pip install -r requirements.txt
    - `DEFAULT_SETTING_FOLDER`: 設定ファイルの保存先フォルダ
    - `DEFAULT_SETTING_FILE`: デフォルトの設定ファイルのパス
 
-2. `python config.py`を実行して、Gradioアプリケーションを起動します。
+2. `python main.py`を実行して、Gradioアプリケーションを起動します。
 
 3. Webブラウザで`http://127.0.0.1:7860`にアクセスします。
 
