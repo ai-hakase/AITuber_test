@@ -4,7 +4,7 @@
 
 ## 設計書
 
-[https://xmind.app/m/shGdH4/](https://xmind.app/m/shGdH4)
+[https://xmind.app/m/La6zsC/](https://xmind.app/m/La6zsC)
 
 ## スクリーンショット
 
