@@ -38,8 +38,14 @@ git clone https://github.com/ai-hakase/AITuber_test.git
 
 2. 必要なPythonパッケージをインストールします。
 ```
+python -m venv myenv
 venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+※ 書き出し
+```
+pip freeze > requirements.txt
 ```
 
 ## 使用方法

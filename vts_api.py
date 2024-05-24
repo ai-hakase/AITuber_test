@@ -11,7 +11,8 @@ import numpy as np
 import gradio as gr
 from io import BytesIO
 from PIL import Image
-from settings import *
+
+from constants import *
 from ui import *
 from main import *
 
@@ -88,35 +89,18 @@ async def get_frame_data(websocket):
 
 async def update_frame(frame_generator):
     async for frame in frame_generator:
-        # #00FF00の色を透明にする
-        green_color = np.array([0, 255, 0], dtype=np.uint8)
-        mask = cv2.inRange(frame, green_color, green_color)
-        mask_inv = cv2.bitwise_not(mask)
-        fg = cv2.bitwise_and(frame, frame, mask=mask_inv)
-        bg = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-        bg_inv = cv2.bitwise_not(bg)
-        result = cv2.add(fg, bg_inv)
-
-        # 処理後のフレームをPIL画像に変換
-        image = Image.fromarray(result)
-        # PIL画像をバイト列に変換
-        buffered = BytesIO()
-        image.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode()
-        # 画像データをvtube_studio_outputに設定
-        vtube_studio_output.value = img_str
-        await asyncio.sleep(0.01)
-
+        _, frame_bytes = cv2.imencode('.jpg', frame)
+        frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
+        vtube_studio_character_video.value = "data:image/jpeg;base64," + frame_base64
+        await asyncio.sleep(0.1)  # フレームレートの調整
 
 async def capture_frames(uri, plugin_name, plugin_developer):
     async with websockets.connect(uri) as websocket:
         authentication_token = await request_token(websocket, plugin_name, plugin_developer)
-
         if authentication_token:
             print(f"Token: {authentication_token}")
             is_authenticated = await authenticate(websocket, plugin_name, plugin_developer, authentication_token)
             print(f"Authenticated: {is_authenticated}")
-
             if is_authenticated:
                 request = {
                     "apiName": "VTubeStudioPublicAPI",
@@ -125,8 +109,38 @@ async def capture_frames(uri, plugin_name, plugin_developer):
                     "messageType": "APIStateRequest"
                 }
                 await websocket.send(json.dumps(request))
-
                 frame_generator = get_frame_data(websocket)
                 await update_frame(frame_generator)
         else:
             print("Token request failed")
+
+
+async def set_camera_state(websocket, camera_state):
+    request = {
+        "apiName": "VTubeStudioPublicAPI",
+        "apiVersion": "1.0",
+        "requestID": "CameraControlRequestID",
+        "messageType": "ChangeVideoSettingsRequest",
+        "data": {
+            "cameraEnabled": camera_state
+        }
+    }
+    await websocket.send(json.dumps(request))
+
+async def connect_to_vtube_studio(uri, plugin_name, plugin_developer):
+    async with websockets.connect(uri) as websocket:
+        authentication_token = await request_token(websocket, plugin_name, plugin_developer)
+        if authentication_token:
+            print(f"Token: {authentication_token}")
+            is_authenticated = await authenticate(websocket, plugin_name, plugin_developer, authentication_token)
+            print(f"Authenticated: {is_authenticated}")
+            if is_authenticated:
+                await set_camera_state(websocket, True)  # カメラをONにする
+                while True:
+                    await asyncio.sleep(1)  # 接続を維持するために待機
+        else:
+            print("Token request failed")
+
+async def start_vtube_studio_connection():
+    await connect_to_vtube_studio(VTUBE_STUDIO_URI, PLUGIN_NAME, PLUGIN_DEVELOPER)
+
