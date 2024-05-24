@@ -6,7 +6,7 @@ import requests
 import random
 from transformers import pipeline
 import torch
-from config import *
+from constants import *
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, LukeConfig
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
