@@ -1,7 +1,24 @@
 import os
+import csv
+import pprint
 import shutil
 from tkinter import filedialog
+
+from ui import *
 from constants import *
+
+
+# csvファイルの変更時の処理
+def on_csv_file_change(file):
+    global csv_data
+    if file:
+        csv_data = []
+        with open(file.name, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                csv_data.append(row)
+    else:
+        csv_data = []
 
 
 # BGMファイルの変更時の処理
@@ -48,6 +65,35 @@ def flatten_actions(actions):
     return flat_actions
 
 
+# 感情のショートカットを更新する関数
+def update_emotion_shortcut(emotion_shortcuts_input):
+    emotion_shortcuts = {row[0]: row[1].split(", ") for row in emotion_shortcuts_input}
+    save_settings(emotion_shortcuts, actions_state.value, json_file_output.value)
+    return emotion_shortcuts
+
+
+# アクションのショートカットを更新する関数
+def update_action_shortcut(actions_input):
+    actions = {}
+    for row in actions_input:
+        action, shortcut_name, keys = row
+        if action not in actions:
+            actions[action] = []
+        actions[action].append([shortcut_name, keys.split(", ")])
+    save_settings(emotion_shortcuts_state.value, actions, json_file_output.value)
+    return actions
+
+
+# # アクションのショートカットを更新する関数（平坦化されたデータから）
+# def update_action_shortcut(flat_actions):
+#     actions = {}
+#     for action, shortcut_name, keys in flat_actions:
+#         if action not in actions:
+#             actions[action] = []
+#         actions[action].append([shortcut_name, keys.split(", ")])
+#     return actions
+
+
 # 辞書の更新
 # def load_and_show_dics():
 #     setting_data = load_settings(DEFAULT_SETTING_FILE)
@@ -56,4 +102,7 @@ def flatten_actions(actions):
 #     return gr.Dataframe.update(value=dics_data, visible=True)
 
 
-
+def on_change_output_folder_click():
+    folder_dialog = gr.Interface(lambda x: x, "file", "file", label="動画保存先を選択してください")
+    selected_folder = folder_dialog.launch(share=True)
+    output_folder_input.value = selected_folder

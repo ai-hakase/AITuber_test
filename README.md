@@ -4,7 +4,7 @@
 
 ## 設計書
 
-[https://xmind.app/m/gBSRkD/](https://xmind.app/m/gBSRkD)
+[https://xmind.app/m/FQAkZ2/](https://xmind.app/m/FQAkZ2)
 
 ## スクリーンショット
 
@@ -41,6 +41,9 @@ git clone https://github.com/ai-hakase/AITuber_test.git
 python -m venv myenv
 venv\Scripts\activate
 pip install -r requirements.txt
+# 必要があれば
+pip uninstall torch torchvision torchaudio
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
 ※ 書き出し
