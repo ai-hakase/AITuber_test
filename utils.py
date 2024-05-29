@@ -16,9 +16,8 @@ from PIL import Image
 #     except FileNotFoundError:
 #         return {}
 
-
-#一時ファイルとして保存しパスを返す関数
-def save_as_temp_file(img, suffix=".png", desired_directory="tmp"):
+#ディレクトリを作成
+def create_directory(desired_directory):
     if desired_directory is None:
         desired_directory = os.path.abspath(os.path.dirname(__file__))  # デフォルトディレクトリ
 
@@ -26,9 +25,25 @@ def save_as_temp_file(img, suffix=".png", desired_directory="tmp"):
     if not os.path.exists(desired_directory):
         os.makedirs(desired_directory)
 
+
+#一時ファイルとして保存しパスを返す関数
+def save_as_temp_file(img, suffix=".png", desired_directory="tmp"):
+    create_directory(desired_directory)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=desired_directory) as tmp:
         img.save(tmp.name)
         return tmp.name
+
+
+#一時ファイルとして保存しパスを返す関数
+def save_as_temp_file_audio(audio_data, suffix=".wav", desired_directory="tmp"):
+    # 一時ファイルを作成して音声データを保存
+    create_directory(desired_directory)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=desired_directory) as temp_file:
+        temp_file.write(audio_data)
+        temp_file_path = temp_file.name
+        return temp_file_path
+
+
 
 
 # 動画の最初の部分をキャプチャーして画像として返す
