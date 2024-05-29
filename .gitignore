@@ -4,3 +4,5 @@ background_video/
 bgm/
 test/
 tmp/
+start.bat
+start.py
