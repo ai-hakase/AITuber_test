@@ -1,6 +1,6 @@
 venv/
 bak/
-!background_video/
-!bgm/
-!test/
-!tmp/
+background_video/
+bgm/
+test/
+tmp/

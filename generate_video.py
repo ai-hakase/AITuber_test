@@ -314,8 +314,12 @@ def display_preview_images(preview_images):
 def generate_video(csv_file_input, bgm_file_input, background_video_file_input, character_name_input, voice_synthesis_model_dropdown, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
     print(f"動画準備開始")
 
+    
     # フレームデータのリスト
-    frame_data_list = []
+    global frame_data_list
+    frame_data_list.clear()
+
+    # frame_data_list = []
 
     main_character = character_name_input
 
@@ -329,14 +333,17 @@ def generate_video(csv_file_input, bgm_file_input, background_video_file_input, 
     whiteboard_image_path = create_whiteboard()
 
     # 解説画像(グリーンバック)を生成
-    explanation_image_path = generate_explanation_image()
+    explanation_image_path = r"Asset/Greenbak.png"
+    # explanation_image_path = generate_explanation_image()
+    # print(f"一時ファイルのパス: {explanation_image_path}")
 
     for character, line in character_lines:
 
         # セリフを処理
         # 元のセリフを字幕用として変数に保持します。
         # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
-        subtitle_line, reading_line = process_line(line, registered_words_table.values)
+        subtitle_line, reading_line = line, line
+        # subtitle_line, reading_line = process_line(line, registered_words_table.values)
         print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line} \n")
 
     #     # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
@@ -344,7 +351,8 @@ def generate_video(csv_file_input, bgm_file_input, background_video_file_input, 
         audio_file = "test/test.mp3"
 
         # キャラクター事にショートカットキーを選択
-        emotion_shortcut, motion_shortcut = get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
+        # emotion_shortcut, motion_shortcut = get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
+        emotion_shortcut, motion_shortcut = 'alt+h', 'ctrl+1'
 
     #     # 音声ファイル、表情・動作のショートカットキー、解説画像をタプルとして保存
     #     # line_data.append((audio_file, emotion_shortcut, motion_shortcut, explanation_image))
@@ -356,14 +364,19 @@ def generate_video(csv_file_input, bgm_file_input, background_video_file_input, 
         # resized_previews.append(resized_preview)
 
         # フレームデータの生成とリストへの保存
+        # frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, None, whiteboard_image_path, subtitle_image_path, preview_image)
         frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image)
         frame_data_list.append(frame_data)
     # preview_images[0].show()
 
     # # プレビュー画像を横並びで表示
     # display_preview_images(preview_images)
-    print(f"動画準備終了")
-    return frame_data_list
+    print(f"動画準備終了\n")
+    subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image = frame_data_list[0]
+    preview_images = [frame_data[8] for frame_data in frame_data_list]
+
+    # explanation_image_path   
+    return subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, None, whiteboard_image_path, subtitle_image_path, preview_images
 
 
 

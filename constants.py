@@ -15,3 +15,6 @@ VTUBE_STUDIO_URI = "ws://127.0.0.1:8001"
 # VTUBE_STUDIO_URI = "ws://localhost:8001"
 PLUGIN_NAME = "AI Tuber Test Program"
 PLUGIN_DEVELOPER = "AI-Hakase"
+
+# グローバル変数でフレームデータリストを保持
+frame_data_list = []
