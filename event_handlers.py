@@ -106,3 +106,5 @@ def on_change_output_folder_click():
     folder_dialog = gr.Interface(lambda x: x, "file", "file", label="動画保存先を選択してください")
     selected_folder = folder_dialog.launch(share=True)
     output_folder_input.value = selected_folder
+
+

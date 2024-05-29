@@ -1,8 +1,13 @@
 import os
+import tempfile
 import json
 from moviepy.editor import VideoFileClip
 import gradio as gr
 from constants import *
+import cv2
+from PIL import Image
+
+
 
 # def load_settings(file_path):
 #     try:
@@ -10,6 +15,56 @@ from constants import *
 #             return json.load(f)
 #     except FileNotFoundError:
 #         return {}
+
+
+#一時ファイルとして保存しパスを返す関数
+def save_as_temp_file(img, suffix=".png", desired_directory="tmp"):
+    if desired_directory is None:
+        desired_directory = os.path.abspath(os.path.dirname(__file__))  # デフォルトディレクトリ
+
+    #ディレクトリを作成
+    if not os.path.exists(desired_directory):
+        os.makedirs(desired_directory)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=desired_directory) as tmp:
+        img.save(tmp.name)
+        return tmp.name
+
+
+# 動画の最初の部分をキャプチャーして画像として返す
+def capture_first_frame(video_path):
+    # 動画ファイルを開く
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print("動画ファイルを開けません")
+        return None
+
+    # 最初のフレームを読み込む
+    ret, frame = cap.read()
+    if not ret:
+        print("フレームのキャプチャに失敗しました")
+        return None
+
+    # OpenCVの画像データをPIL形式に変換
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    img = Image.fromarray(frame)
+
+    # キャプチャを解放
+    cap.release()
+    return img
+
+
+# グリーンバックの色(00FF00)を透明に変換
+def process_transparentize_green_back(img):
+    img = img.convert("RGBA")
+    width, height = img.size
+    for x in range(width):
+        for y in range(height):
+            r, g, b, a = img.getpixel((x, y))
+            if r == 0 and g == 255 and b == 0:
+                img.putpixel((x, y), (0, 0, 0, 0))
+    return img
+
 
 # 設定ファイルを読み込む関数
 def load_settings(json_file_path):
@@ -28,6 +83,7 @@ def load_settings(json_file_path):
         return character_name, voice_synthesis_model, reading_speed, output_folder, bgm_file, background_video_file, emotion_shortcuts, actions, dics
     except (FileNotFoundError, json.JSONDecodeError, KeyError):
         return "葉加瀬あい", "model1", 1.0, "outputs", "bgm\\default_bgm.wav", "background_video\\default_video.mp4", {emotion: [] for emotion in EMOTIONS}, {}, {}
+
 
 # 設定ファイルを保存する関数
 def save_settings(emotion_shortcuts, actions, json_file_output):

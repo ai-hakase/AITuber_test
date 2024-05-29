@@ -1,12 +1,15 @@
 import os
+import tempfile
 import csv
 import pyautogui
 import random
 import torch
+import textwrap
 
 from transformers import pipeline
 from PIL import Image, ImageDraw, ImageFont
 from constants import *
+from utils import *
 from vts_api import *
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, LukeConfig
 
@@ -22,6 +25,7 @@ model.to(DEVICE)
 
 # メインキャラクター
 main_character = None
+subtitle_image_path = None
 
 # キャラクターごとの最後に入力したモーションショートカットを保持する辞書
 last_motion_shortcut = {
@@ -49,8 +53,10 @@ def load_csv_data(csv_file_path):
 # セリフを処理
 def process_line(line, registered_words_table):
     subtitle_line = line
+    # カタカナに変換→時間かかるので検討中
     reading_line = translate_to_katakana(line, registered_words_table)
     return subtitle_line, reading_line
+    # return subtitle_line, line#reading_line
 
 # 辞書機能で英語テキストのカタカナ翻訳を行う関数
 def translate_to_katakana(line, registered_words_table):
@@ -105,7 +111,7 @@ def get_shortcut_key(emotion_shortcuts, actions, character, line):
         motion_shortcut = press_random_key(actions[TALKING], last_motion_shortcut[main_character])
         last_motion_shortcut[main_character] = motion_shortcut
     else:
-        emotion_shortcut = emotion_shortcuts.get(emotion, ['alt', 'n'])
+        emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
         motion_shortcut = press_random_key(actions[WAITING], last_motion_shortcut["other"])
         last_motion_shortcut["other"] = motion_shortcut
     return emotion_shortcut, motion_shortcut
@@ -115,36 +121,52 @@ def get_shortcut_key(emotion_shortcuts, actions, character, line):
 def create_whiteboard():
     # 1280x720の透明な画像を作成
     img = Image.new('RGBA', (1280, 720), (255, 255, 255, 0))
-    whiteboard = 'whiteboard.png'
-    # img.save(whiteboard)
-    return whiteboard
+    return save_as_temp_file(img)
 
 
 # PILを使用してグリーンバック画像を生成
 def generate_explanation_image():
     img = Image.new('RGB', (1280, 720), (0, 255, 0))
-    explanation_image = f'explanation.png'
-    # img.save(explanation_image)
-    return explanation_image
+    return save_as_temp_file(img)
 
 
-def generate_subtitle(): # subtitle_line
+def generate_subtitle(subtitle_line):
     # 字幕用の画像を読み込む
     img = Image.open("Asset/tb00018_03_pink.png")
-    # d = ImageDraw.Draw(img)
-    # font = ImageFont.truetype("arial.ttf", 64)
-    # # テキストのサイズを取得
-    # text_width, text_height = d.textbbox((0, 0), subtitle_line, font=font)[2:]
-    # # 画像のサイズを取得
-    # img_width, img_height = img.size
-    # # テキストを中央揃えで描画する位置を計算
-    # x = (img_width - text_width) / 2
-    # y = (img_height - text_height) / 2
+    d = ImageDraw.Draw(img)
+    font = ImageFont.truetype("Asset/NotoSansJP-VariableFont_wght.ttf", 48)
 
-    # # 計算された位置にテキストを描画
-    # d.text((x, y), subtitle_line, fill=(255, 255, 255), font=font)
-    # 画像そのものを返す
-    return img
+    # 画像のサイズを取得
+    img_width, img_height = img.size
+
+    # テキストを指定された幅で改行する
+    wrapped_text = textwrap.fill(subtitle_line, width=((img_width - 50) // font.getbbox("あ")[2]))
+
+    # 改行後のテキストを2行以内に制限する
+    lines = wrapped_text.split("\n")
+    if len(lines) > 2:
+        lines = lines[:2]
+    wrapped_text = "\n".join(lines)
+
+    # テキストのサイズを取得
+    text_width, text_height = d.multiline_textbbox((0, 0), wrapped_text, font=font)[2:]
+
+    # 文字を中央揃えにするための位置を計算
+    text_x = (img_width - text_width) / 2
+    text_y = (img_height - text_height) / 2
+
+    # 一行の場合は文字の位置を上げる
+    if len(lines) == 1:
+        text_y -= 30  # 上に5ピクセル移動
+
+    # 文字の描画位置を計算
+    draw_x = text_x
+    draw_y = text_y - text_height / 2 +140#調整
+
+    # 計算された位置にテキストを描画
+    d.multiline_text((draw_x, draw_y), wrapped_text, fill=(0, 0, 0), font=font, align='center', spacing=20)
+
+    return save_as_temp_file(img)
 
 
 def capture_and_process_image():
@@ -170,23 +192,9 @@ def capture_and_process_image():
 
     # 画像をPillowで開く
     img = Image.open('test\capture.png')
-
-    # グリーンバックを透明にする処理
-    # img = img.convert("RGBA")
-    datas = img.getdata()
-
-    newData = []
-    for item in datas:
-        # グリーンバックの色(00FF00)を透明に変換
-        if item[0] == 0 and item[1] == 255 and item[2] == 0:
-            newData.append((255, 255, 255, 0))
-        else:
-            newData.append(item)
-
-    img.putdata(newData)
+    img = process_transparentize_green_back(img)
     # img.save("output.png")  # 透明化した画像を保存
-
-    return img  # PIL Imageオブジェクトを返す
+    return save_as_temp_file(img)  # PIL Imageオブジェクトを返す
 
 # 関数を呼び出して画像を処理
 # processed_image = capture_and_process_image()
@@ -194,50 +202,106 @@ def capture_and_process_image():
 #     processed_image.show()  # 処理後の画像を表示
 
 
+# イメージ画像をリサイズする
+def resize_image_aspect_ratio(image, target_width, target_height):
+    width, height = image.size
+    aspect_ratio = width / height
+    
+    if target_width is not None and target_height is not None:
+        target_aspect_ratio = target_width / target_height
+        if aspect_ratio > target_aspect_ratio:
+            new_width = target_width
+            new_height = int(new_width / aspect_ratio)
+        else:
+            new_height = target_height
+            new_width = int(new_height * aspect_ratio)
+    elif target_width is not None:
+        new_width = target_width
+        new_height = int(new_width / aspect_ratio)
+    elif target_height is not None:
+        new_height = target_height
+        new_width = int(new_height * aspect_ratio)
+    else:
+        return image
+    
+    resized_image = image.resize((new_width, new_height))
+    return resized_image
+
+
+# 画像の周りにボーダーラインを引く
+def add_border(image, border_width):
+    width, height = image.size
+    new_width = width + border_width * 2
+    new_height = height + border_width * 2
+    bordered_image = Image.new('RGBA', (new_width, new_height), (0, 0, 0, 255))
+    bordered_image.paste(image, (border_width, border_width))
+    return bordered_image
+
+
+
 # プレビュー画像を生成する関数
-def generate_preview_image(frame_data, vtuber_character):
-    # 各フレームデータから情報を取得
-    subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image, whiteboard_image, subtitleImg = frame_data
-
-    # 背景画像を読み込む
-    background = Image.open("background_video/default_video.mp4")  # 最初のフレームを画像として読み込む
-    background = background.resize((400, 300))  # プレビュー画像のサイズに合わせる
-
-    # 解説画像を読み込む
-    explanation = Image.open(explanation_image)
-    explanation = explanation.resize((400, 300))  # プレビュー画像のサイズに合わせる
-
+def generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_line, vtuber_character_path):
+    
+    # プレビューエリアを作成
+    preview_width = 1980
+    preview_height = 1080
+    preview = Image.new('RGBA', (preview_width, preview_height))
+    
+    # 背景動画の最初のフレームを読み込む
+    background = capture_first_frame(background_video_file_input)
+    # if background:
+    background = resize_image_aspect_ratio(background, preview_width, preview_height+100)#調整
+    preview.paste(background, (0, 0))
+    
+    # 字幕画像を作成
+    subtitle_image_path = generate_subtitle(subtitle_line)
+    subtitle_img = Image.open(subtitle_image_path)
+    subtitle_img = resize_image_aspect_ratio(subtitle_img, preview_width, preview_height)
+    
+    # 解説画像を読み込む → ホワイドボードの中に配置して中央揃えしても良いかも。
+    explanation_img = Image.open(explanation_image_path)
+    explanation_height = preview_height - subtitle_img.height +300#調整
+    explanation_img = resize_image_aspect_ratio(explanation_img, 1280, explanation_height)
+    explanation_img = add_border(explanation_img, 10)
+    explanation_x = 50
+    explanation_y = 50
+    preview.paste(explanation_img, (explanation_x, explanation_y))
+    
     # Vキャラ画像を読み込む
-    vtuber_img = Image.open(vtuber_character)
-    vtuber_img = vtuber_img.resize((100, 150))  # Vキャラのサイズを調整
-
-    # ホワイトボード（透明な画像）を作成
-    whiteboard = Image.new('RGBA', (1280, 720), (255, 255, 255, 0))
-
-    # プレビュー画像を作成
-    preview = Image.new('RGBA', (400, 300))
-
-    # レイヤーを合成
-    preview.paste(background, (0, 0))  # 背景画像
-    preview.paste(explanation, (0, 0), explanation)  # 解説画像
-    preview.paste(vtuber_img, (300, 150), vtuber_img)  # Vキャラ画像
-
-    # 字幕を追加
-    draw = ImageDraw.Draw(preview)
-    font = ImageFont.truetype("arial.ttf", 52)
-    text_width, text_height = draw.textsize(subtitle_line, font=font)
-    text_x = (400 - text_width) / 2
-    text_y = 300 - text_height  # 下部に配置
-    draw.text((text_x, text_y), subtitle_line, font=font, fill=(255, 255, 255))
-
+    vtuber_img = Image.open(vtuber_character_path)
+    # クロマキー処理
+    vtuber_img = process_transparentize_green_back(vtuber_img)
+    # 中央から左右の800ピクセルを切り取る
+    vtuber_width, vtuber_height = vtuber_img.size
+    left = (vtuber_width - 600) // 2
+    top = 0
+    right = left + 600
+    bottom = vtuber_height
+    vtuber_img = vtuber_img.crop((left, top, right, bottom))
+    # リサイズ
+    vtuber_img = resize_image_aspect_ratio(vtuber_img, None, 720)
+    vtuber_x = preview_width - vtuber_img.width +10#調整
+    vtuber_y = preview_height - vtuber_img.height -200#調整
+    preview.paste(vtuber_img, (vtuber_x, vtuber_y))
+    
+    # 字幕を合成
+    subtitle_x = (preview_width - subtitle_img.width) // 2
+    subtitle_y = preview_height - subtitle_img.height
+    preview.paste(subtitle_img, (subtitle_x, subtitle_y), mask=subtitle_img)
+    
     # プレビュー画像を保存
-    preview_image_path = f'preview_image.png'
-    # preview_image_path = f'preview_{frame_data}.png'
-    preview.save(preview_image_path)
+    preview_image_path = save_as_temp_file(preview)
+    # preview_image_path = 'preview_image.png'
+    # preview.save(preview_image_path)
+    
+    # # プレビュー画像をリサイズ
+    # resized_preview = preview.resize((495, 270))
+    # resized_preview_path = save_as_temp_file(resized_preview)
+    # 'resized_preview_image.png'
+    # resized_preview.save(resized_preview_path)
 
     return preview_image_path
-
-
+    # return preview_image_path, resized_preview_path
 # generate_preview_image()  # 処理後の画像を表示
 
 
@@ -248,32 +312,24 @@ def display_preview_images(preview_images):
 
 # 動画生成の主要な処理を行う関数
 def generate_video(csv_file_input, bgm_file_input, background_video_file_input, character_name_input, voice_synthesis_model_dropdown, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
-   
-
-    sample_rate, audio_data = bgm_file_input
-    bgm_file = (sample_rate, audio_data.tolist())  # NumPy arrayをリストに変換
-
-    main_character = character_name_input
-
-    # CSVファイルからキャラクター・セリフ情報を取得
-    character_lines = load_csv_data(csv_file_input)
-
-    # 各セリフ,キャラクター事に処理
-    # line_data = []
+    print(f"動画準備開始")
 
     # フレームデータのリスト
     frame_data_list = []
 
+    main_character = character_name_input
+
     # 字幕画像の生成
-    subtitleImg = generate_subtitle()
-    # subtitle = generate_subtitle(subtitle_line)
+    subtitle_image_path = "Asset/tb00018_03_pink.png"
+
+    # CSVファイルからキャラクター・セリフ情報を取得
+    character_lines = load_csv_data(csv_file_input)
 
     # ホワイドボード画像を生成
-    whiteboard_image = create_whiteboard()
+    whiteboard_image_path = create_whiteboard()
 
     # 解説画像(グリーンバック)を生成
-    explanation_image = generate_explanation_image()
-
+    explanation_image_path = generate_explanation_image()
 
     for character, line in character_lines:
 
@@ -281,7 +337,7 @@ def generate_video(csv_file_input, bgm_file_input, background_video_file_input, 
         # 元のセリフを字幕用として変数に保持します。
         # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
         subtitle_line, reading_line = process_line(line, registered_words_table.values)
-        print(subtitle_line, reading_line)
+        print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line} \n")
 
     #     # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
     #     # audio_file = generate_audio(reading_line, character, voice_synthesis_model_dropdown)
@@ -293,22 +349,21 @@ def generate_video(csv_file_input, bgm_file_input, background_video_file_input, 
     #     # 音声ファイル、表情・動作のショートカットキー、解説画像をタプルとして保存
     #     # line_data.append((audio_file, emotion_shortcut, motion_shortcut, explanation_image))
 
-        # フレームデータの生成とリストへの保存
-        frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image, whiteboard_image, subtitleImg)
-        frame_data_list.append(frame_data)
+        vtuber_character = capture_and_process_image()
+        preview_image = generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_line, vtuber_character)
+        # preview_image, resized_preview = generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_line, vtuber_character)
+        # preview_images.append(preview_image)
+        # resized_previews.append(resized_preview)
 
-    # # プレビュー画像の生成と表示
-    # preview_images = []
-    # for frame_data in frame_data_list:
-    #     subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image, whiteboard_image, subtitleImg = frame_data
-    #     vtuber_character = capture_and_process_image()
-    #     preview_image = generate_preview_image(frame_data, vtuber_character)
-    #     preview_images.append(preview_image)
+        # フレームデータの生成とリストへの保存
+        frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image)
+        frame_data_list.append(frame_data)
+    # preview_images[0].show()
 
     # # プレビュー画像を横並びで表示
     # display_preview_images(preview_images)
-
-    # return frame_data_list
+    print(f"動画準備終了")
+    return frame_data_list
 
 
 
