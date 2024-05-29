@@ -13,17 +13,15 @@ from constants import *
 from vts_api import *
 from main import *
 from utils import *
+from generate_video import *
 from event_handlers import *
-from generate_video import generate_video
 
 
 # 設定ファイルの読み込み
 character_name, voice_synthesis_model, reading_speed, output_folder, bgm_file, background_video_file, emotion_shortcuts, actions, dics = load_settings(DEFAULT_SETTING_FILE)
 # csv_data = []
 
-# グローバル変数でフレームデータリストを保持
-frame_data_list = None
-
+# selected_index = 0
 
 
 # 変数をコンソールに書き出す関数
@@ -32,6 +30,10 @@ def print_variables():
         "CSVファイル": csv_file_input.value['path'],
         "BGMファイル": bgm_file_input.value['path'],
         "背景動画ファイル": background_video_file_input.value['video']['path'],
+        "subtitle_line": subtitle_input.value,
+        "reading_line": reading_input.value,
+        "image_video_input": image_video_input,
+        "image_video_input.value": image_video_input.value,
         "キャラクター名.value": character_name_input.value,
         "キャラクター名": character_name_input,
         "音声合成モデル": voice_synthesis_model_dropdown.value,
@@ -65,10 +67,13 @@ def update_preview(file):
     return gr.update(visible=False), gr.update(visible=False)
 
 
+def on_delete_image_video_click():
+    return gr.update(label="画像/動画選択", value=None, file_types=["image", "video"], interactive=True), gr.update(value=None, visible=False), gr.update(value=None, visible=False)
+
 
 # フレームデータから各要素を抽出してUIに表示する関数
 def update_ui_elements(selected_index):
-
+    global frame_data_list
     # print(f"frame_data_list: {frame_data_list}")
     # 各要素を抽出
     try:
@@ -83,28 +88,35 @@ def update_ui_elements(selected_index):
         return None, None, None, None, None, None
 
     # 初期状態または特定のフレームが選択された場合の処理
-    if selected_index is None:
-        selected_index = 0
+    # if selected_index is None:
+    #     selected_index = 0
 
     # 各要素を選択されたインデックスに基づいて設定
-    # preview_image = preview_images[selected_index]
-    subtitle_input = subtitle_input_list[selected_index]
-    reading_input = reading_input_list[selected_index]
+    # subtitle_input = subtitle_input_list[selected_index]
+    # reading_input = reading_input_list[selected_index]
+    subtitle_input.value = subtitle_input_list[selected_index]
+    reading_input.value = reading_input_list[selected_index]
+
     emotion_dropdown = emotion_dropdown_list[selected_index]
     motion_dropdown = motion_dropdown_list[selected_index]
-    image_video_input = image_video_input_list[selected_index]
+    # image_video_input = image_video_input_list[selected_index]
+    # image_video_input.value = r"Asset\Greenbak.png"
+    image_video_input.value = image_video_input_list[selected_index]
+
+    # print(f"ー＞\nimage_video_input: {image_video_input}")
+    # print(f"image_video_input.value: {image_video_input.value}")
+    # if image_video_input.value == r"Asset\Greenbak.png":
+    #     image_video_input.value = None
+
+    # print(f"image_video_input: {image_video_input}")
+    # print(f"image_video_input.value: {image_video_input.value}")
+    # image_video_input: <gradio.components.file.File object at 0x0000025A6FA01030>
+    # image_video_input.value: C:\Users\okozk\Test\Gradio\tmp\tmpfn30of0o.png
 
     # 戻り値として各要素のリストを返す
-    return preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input
+    return preview_images, subtitle_input.value, reading_input.value, emotion_dropdown, motion_dropdown, image_video_input.value
 
     
-# ギャラリーのインデックスが選択されたときに呼び出される関数
-def handle_gallery_click(evt: gr.SelectData):
-    selected_index = evt.index
-    print(f"Selected index: {selected_index}")
-    return update_ui_elements(selected_index)
-
-
 #　グローバル変数にリストを格納 → 最初に更新
 # hidden_outputの値が変更されたときにframe_data_listを更新
 def update_frame_data_list(frame_data):
@@ -117,8 +129,98 @@ def update_frame_data_list(frame_data):
         print("No data:", frame_data_list)  # デバッグ用にデータを出力
         return None, None, None, None, None, None
 
+# 読み方変更ボタンがクリックされたときの処理
+def on_update_reading_click(subtitle_line, reading_line, image_video_input, selected_index):
+    global frame_data_list
+    # global selected_index
+
+    if frame_data_list is None:
+        # selected_index = 0
+        raise ValueError(f"frame_data_list is -> {frame_data_list}")
+    
+    if selected_index is None:
+        # selected_index = 0
+        raise ValueError(f"selected_index is -> {selected_index}")
+    
+
+    print(f"\n selected_index is -> {selected_index} !!!")
+    # print(f"{background_video_file_input, subtitle_line, reading_line, image_video_input}")
 
 
+    # プレビュー画像を更新
+    # background_video_file_input = r'background_video\default_video.mp4'
+    # background_video_file_input = background_video_file_input.value['video']['path']
+    
+    whiteboard_image_path = ""
+    vtuber_character_path = capture_and_process_image()
+
+
+    # print(f"{background_video_file_input, image_video_input, whiteboard_image_path, subtitle_line, vtuber_character_path}")
+    # background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_line, vtuber_character_path
+    
+
+    # print(f"\nimage_video_input: {image_video_input}")
+    # image_video_input が None の場合の処理
+    if image_video_input is None:
+        preview_image_path = generate_preview_image(r'background_video\default_video.mp4', r"Asset\Greenbak.png", whiteboard_image_path, subtitle_line, vtuber_character_path)
+    else:
+        preview_image_path = generate_preview_image(r'background_video\default_video.mp4', image_video_input, whiteboard_image_path, subtitle_line, vtuber_character_path)
+
+    if image_video_input == r"Asset\Greenbak.png":
+        image_video_input = None
+
+    # 現在のフレームデータを更新
+    frame_data = list(frame_data_list[selected_index])
+    frame_data[0] = subtitle_line
+    frame_data[1] = reading_line
+    frame_data[6] = image_video_input
+    frame_data[8] = preview_image_path
+
+    # 更新されたフレームデータをリストに戻す
+    frame_data_list[selected_index] = tuple(frame_data)
+
+    # UIコンポーネントを更新
+    return update_ui_elements(selected_index)
+
+# 読み方用のテキストエリアでEnterキーが押されたときの処理
+def on_reading_input_submit(evt, subtitle_line, reading_line, image_video_input):
+    if evt.key == "Enter":
+        return on_update_reading_click(subtitle_line, reading_line, image_video_input)
+    return gr.update()
+
+
+
+# ギャラリーのインデックスが選択されたときに呼び出される関数
+def handle_gallery_click(evt: gr.SelectData, subtitle_input, reading_input, image_video_input, selected_index):
+    global frame_data_list
+    
+    new_selected_index = evt.index
+
+    # # デバッグ用にselected_indexの値を確認
+    # if selected_index is None:
+    #     print("Error: selected_index is None", frame_data_list)
+    # else:
+    #     print(f"selected_index is set to: {selected_index}", frame_data_list)
+
+    # 現在のフレームデータを取得
+    current_frame_data = frame_data_list[selected_index]
+
+    # 現在のデータと新しいデータを比較
+    if (current_frame_data[0] != subtitle_input or current_frame_data[1] != reading_input or current_frame_data[6] != image_video_input):            
+        # データが異なる場合のみ更新
+        if image_video_input is None:
+            on_update_reading_click(subtitle_input, reading_input, r"Asset\Greenbak.png", selected_index)
+        else:
+            on_update_reading_click(subtitle_input, reading_input, image_video_input, selected_index)
+
+    # UI要素を更新
+    preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input = update_ui_elements(new_selected_index)
+
+    # # print(f"image_video_input: {image_video_input}")
+    # if image_video_input == r"Asset\Greenbak.png":
+    #     image_video_input = None
+
+    return preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input, new_selected_index
 
 
 
@@ -132,7 +234,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             bgm_file_input = gr.Audio(label="BGMファイル", value=bgm_file, interactive=True)
             background_video_file_input = gr.Video(label="背景動画ファイル", value=background_video_file, interactive=True)
 
-        with gr.Column():
+        with gr.Column(scale=2):
             with gr.Tab("読み上げ設定"):
                 # キャラ
                 character_name_input = gr.Textbox(label="メインキャラクター名", value=character_name)
@@ -188,25 +290,11 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     new_settings_name_input = gr.Textbox(label="新規設定ファイル名")
                     save_new_settings_button = gr.Button("新規設定ファイル保存")
 
-    # イベントハンドラの設定
-    csv_file_input.change(on_csv_file_change, csv_file_input)
-    bgm_file_input.change(on_bgm_file_change, bgm_file_input)
-    background_video_file_input.change(on_background_video_file_change, background_video_file_input)
-    change_output_folder_button.click(lambda: on_change_output_folder_click(output_folder_input))
-    # change_output_folder_button.click(on_change_output_folder_click, None, output_folder_input)
-    # show_registered_words_button.click(load_and_show_dics, outputs=[registered_words_table, dics_table])
-    emotion_shortcuts_state = gr.State(emotion_shortcuts)
-    actions_state = gr.State(actions)
-
-    # 変数をコンソールに表示するボタン
-    print_variables_button = gr.Button("変数をコンソールに表示")
-    # イベントハンドラの設定
-    print_variables_button.click(fn=print_variables)
 
     # 動画準備
     generate_video_button = gr.Button("感情分析・動画準備開始（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", elem_classes="font-size: 10px")
-
-
+    # 変数をコンソールに表示するボタン
+    print_variables_button = gr.Button("変数をコンソールに表示")
 
 
 
@@ -216,9 +304,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         with gr.Column():
             # selected_frame_preview_output = gr.Image(label="選択された画像/動画のプレビュー", )#value=gr.Image.update(value=frame_list_output, every=1)
 
+            selected_index = gr.State(0)
 
             preview_images = gr.Gallery(label="画像/動画フレーム一覧", elem_id="frame_gallery")
             # 一時的な出力を受け取るための隠しコンポーネント
+            whiteboard_image_path = gr.File(label="", visible=False)
+            subtitle_image_path = gr.File(label="", visible=False)
             hidden_output = gr.JSON(visible=False)
 
 
@@ -227,13 +318,18 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 subtitle_input = gr.Textbox(label="セリフ（字幕用）")
                 reading_input = gr.Textbox(label="セリフ（読み方）")
                 with gr.Row():
-                    update_reading_button = gr.Button("読み方変更")
-                    test_playback_button = gr.Button("テスト再生")
+                    test_playback_button = gr.Audio(value=r"bgm\default_bgm.wav", type="filepath", label="テスト再生", scale=2)
+                    update_reading_button = gr.Button("変更", scale=1)
                 emotion_dropdown = gr.Dropdown(label="表情選択")#, choices=["neutral", "happy", "sad", "angry"])
                 motion_dropdown = gr.Dropdown(label="モーション選択")#, choices=["idle", "nod", "shake", "point"])
 
             with gr.Tab("画像・動画編集"):
-                image_video_input = gr.File(label="画像/動画選択", file_types=["image", "video"])
+                image_video_input = gr.File(label="画像/動画選択", file_types=["image", "video"], interactive=True)
+                with gr.Row():
+                    update_image_video_button = gr.Button("変更", scale=2)
+                    delete_image_video_button = gr.Button("削除", scale=1)
+                # preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", interactive=True)
+                # preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True)
                 preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", visible=False)
                 preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", visible=False)
 
@@ -245,7 +341,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 # video_preview_output = gr.HTML(value=custom_html())
                 # video_output = gr.HTML(video_feed)
                 # demo = gr.Interface(lambda: "", inputs=[], outputs=video_output, allow_flagging="never")
-
 
 
     with gr.Row():
@@ -261,24 +356,39 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     generated_video_preview_output = gr.Video(label="生成された動画のプレビュー")
 
 
-    generate_video_button.click(
-        fn=generate_video,
-        inputs=[
-            csv_file_input,
-            bgm_file_input,
-            background_video_file_input,
-            character_name_input,
-            voice_synthesis_model_dropdown,
-            reading_speed_slider,
-            registered_words_table,
-            emotion_shortcuts_state,
-            actions_state
-        ],
-        outputs=[hidden_output],
-        show_progress=True
+
+
+
+    # UIコンポーネントの設定
+    # ギャラリーの選択イベントに関数をバインド
+    preview_images.select(
+        fn=handle_gallery_click,
+        inputs=[subtitle_input, reading_input, image_video_input, selected_index],
+        outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input, selected_index]
+    )
+    
+    # 読み方更新ボタンのクリックイベント設定
+    update_reading_button.click(
+        fn=on_update_reading_click,
+        inputs=[subtitle_input, reading_input, image_video_input, selected_index],
+        outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
     )
 
-    # ファイルがアップロードされたときにプレビューを更新
+    # 画像/動画更新ボタンのクリックイベント設定
+    update_image_video_button.click(
+        fn=on_update_reading_click,
+        inputs=[subtitle_input, reading_input, image_video_input, selected_index],
+        outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
+    )
+
+    # 画像/動画削除ボタンのクリックイベント設定
+    delete_image_video_button.click(
+        fn=on_delete_image_video_click,
+        inputs=[],
+        outputs=[image_video_input, preview_image_output, preview_video_output]
+    )
+
+    # 画像/動画変更時にプレビューを更新
     image_video_input.change(
         fn=update_preview,
         inputs=image_video_input,
@@ -286,24 +396,49 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     )
 
 
+    # イベントハンドラの設定
+    csv_file_input.change(on_csv_file_change, csv_file_input)
+    bgm_file_input.change(on_bgm_file_change, bgm_file_input)
+    background_video_file_input.change(on_background_video_file_change, background_video_file_input)
+    change_output_folder_button.click(lambda: on_change_output_folder_click(output_folder_input))
+    # change_output_folder_button.click(on_change_output_folder_click, None, output_folder_input)
+    # show_registered_words_button.click(load_and_show_dics, outputs=[registered_words_table, dics_table])
+    emotion_shortcuts_state = gr.State(emotion_shortcuts)
+    actions_state = gr.State(actions)
+    # イベントハンドラの設定
+    print_variables_button.click(fn=print_variables)
 
-    # ギャラリーの選択イベントに関数をバインド
-    # preview_images.select(handle_gallery_click)    
 
-    # ギャラリーの選択イベントに関数をバインド
-    preview_images.select(
-        fn=handle_gallery_click,
-        inputs=None,
-        outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
-    )
+    # # 読み方入力フィールドのサブミットイベント設定
+    # reading_input.submit(
+    #     fn=on_reading_input_submit,
+    #     inputs=[reading_input, subtitle_input, image_video_input],
+    #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
+    # )
 
     # hidden_outputの値が変更されたときにupdate_ui_elementsを呼び出す
-    hidden_output.change(
-        fn=update_frame_data_list,
-        inputs=[hidden_output],
-        outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
+    # hidden_output.change(
+    #     fn=update_frame_data_list,
+    #     inputs=[hidden_output],
+    #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
+    # )
+    
+    generate_video_button.click(
+    fn=generate_video,
+    inputs=[
+        csv_file_input,
+        bgm_file_input,
+        background_video_file_input,
+        character_name_input,
+        voice_synthesis_model_dropdown,
+        reading_speed_slider,
+        registered_words_table,
+        emotion_shortcuts_state,
+        actions_state
+    ],
+    outputs=[subtitle_input, reading_input,test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, subtitle_image_path, preview_images],
+    show_progress=True
     )
-
 
 
     # update_emotion_shortcuts_button.click(
