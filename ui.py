@@ -1,4 +1,3 @@
-import csv
 import asyncio
 import numpy as np
 import gradio as gr
@@ -6,23 +5,33 @@ import pprint
 import asyncio
 import numpy as np
 import requests
+import signal
 
 from tkinter import filedialog
 from moviepy.editor import VideoFileClip
 
+from vtuber_camera import VTuberCamera
+from edit_medias import EditMedia
 from constants import *
 from vts_api import *
 from main import *
 from utils import *
 from generate_video import *
+from create_subtitle_voice import CreateSubtitleVoice
 from event_handlers import *
 
+vtuber_camera = VTuberCamera()
+generate_video = GenerateVideo()
+edit_medias = EditMedia()
+create_subtitle_voice = CreateSubtitleVoice()
+
+signal.signal(signal.SIGINT, vtuber_camera.stop) # ターミナルでの Ctrl+C で終了するための処理
 
 # 設定ファイルの読み込み
 character_name, voice_synthesis_model, reading_speed, output_folder, bgm_file, background_video_file, emotion_shortcuts, actions, dics = load_settings(DEFAULT_SETTING_FILE)
-# csv_data = []
 
-# selected_index = 0
+# プレビュー画像の幅と高さ
+preview_width, preview_height = 1920, 1080
 
 
 # 変数をコンソールに書き出す関数
@@ -75,7 +84,7 @@ def on_delete_image_video_click():
 # フレームデータから各要素を抽出してUIに表示する関数
 def update_ui_elements(selected_index):
     global frame_data_list
-    # print(f"frame_data_list: {frame_data_list}")
+
     # 各要素を抽出
     try:
         preview_images = [frame_data[8] for frame_data in frame_data_list]
@@ -89,39 +98,18 @@ def update_ui_elements(selected_index):
         print(f"IndexError: {e}")
         return None, None, None, None, None, None
 
-    # 初期状態または特定のフレームが選択された場合の処理
-    # if selected_index is None:
-    #     selected_index = 0
-
-    # 各要素を選択されたインデックスに基づいて設定
-    # subtitle_input = subtitle_input_list[selected_index]
-    # reading_input = reading_input_list[selected_index]
     subtitle_input.value = subtitle_input_list[selected_index]
     reading_input.value = reading_input_list[selected_index]
     test_playback_button.value = audio_file_list[selected_index]
-
     emotion_dropdown = emotion_dropdown_list[selected_index]
     motion_dropdown = motion_dropdown_list[selected_index]
-    # image_video_input = image_video_input_list[selected_index]
-    # image_video_input.value = r"Asset\Greenbak.png"
     image_video_input.value = image_video_input_list[selected_index]
-
-    # print(f"ー＞\nimage_video_input: {image_video_input}")
-    # print(f"image_video_input.value: {image_video_input.value}")
-    # if image_video_input.value == r"Asset\Greenbak.png":
-    #     image_video_input.value = None
-
-    # print(f"image_video_input: {image_video_input}")
-    # print(f"image_video_input.value: {image_video_input.value}")
-    # image_video_input: <gradio.components.file.File object at 0x0000025A6FA01030>
-    # image_video_input.value: C:\Users\okozk\Test\Gradio\tmp\tmpfn30of0o.png
 
     # 戻り値として各要素のリストを返す
     return preview_images, subtitle_input.value, reading_input.value, test_playback_button.value, emotion_dropdown, motion_dropdown, image_video_input.value
 
     
 #　グローバル変数にリストを格納 → 最初に更新
-# hidden_outputの値が変更されたときにframe_data_listを更新
 def update_frame_data_list(frame_data):
     global frame_data_list
     if frame_data_list is None:
@@ -133,9 +121,8 @@ def update_frame_data_list(frame_data):
         return None, None, None, None, None, None
 
 # 読み方変更ボタンがクリックされたときの処理
-def on_update_reading_click(subtitle_line, reading_line, image_video_input, selected_index, selected_model_tuple_state):
+def on_update_reading_click(subtitle_line, reading_line, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path):
     global frame_data_list
-    # global selected_index
 
     if frame_data_list is None:
         # selected_index = 0
@@ -147,41 +134,55 @@ def on_update_reading_click(subtitle_line, reading_line, image_video_input, sele
     
 
     print(f"\n selected_index is -> {selected_index} !!!")
-    # print(f"{background_video_file_input, subtitle_line, reading_line, image_video_input}")
-    
-    whiteboard_image_path = ""
-    vtuber_character_path = capture_and_process_image()
 
+    
+    # 字幕画像の生成
+    subtitle_img = edit_medias.generate_subtitle(subtitle_line, preview_width, preview_height)#字幕画像の生成
+    subtitle_image_path = save_as_temp_file(subtitle_img)#テンポラリファイルに保存
+
+    # Vキャラ画像を生成 -> クロマキー処理
+    vtuber_img = edit_medias.create_vtuber_image()
+    vtuber_character_path = save_as_temp_file(vtuber_img)
 
     # image_video_input が None の場合の処理
     if image_video_input is None:
-        preview_image_path = generate_preview_image(r'background_video\default_video.mp4', r"Asset\Greenbak.png", whiteboard_image_path, subtitle_line, vtuber_character_path)
-    else:
-        preview_image_path = generate_preview_image(r'background_video\default_video.mp4', image_video_input, whiteboard_image_path, subtitle_line, vtuber_character_path)
+        image_video_input = r"Asset\Greenbak.png"
 
-    if image_video_input == r"Asset\Greenbak.png":
-        image_video_input = None
+    # 解説画像の生成
+    explanation_img = load_image_or_video(image_video_input).convert("RGBA")  # RGBAモードに変換
+    whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
+    # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
+    explanation_img = edit_medias.resize_image_aspect_ratio(explanation_img, whiteboard_image.width - 20, whiteboard_image.height - 20)
+    # 解説画像の周りにボーダーを追加
+    explanation_img = edit_medias.add_border(explanation_img, 10)
+    explanation_image_path = save_as_temp_file(explanation_img)
+
+    # プレビュー画像の生成  
+    preview_image_path = generate_video.generate_preview_image(background_video_file, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_character_path)
 
     # 現在のフレームデータを更新
     frame_data = list(frame_data_list[selected_index])
 
+    if image_video_input == r"Asset\Greenbak.png": #画像がない場合
+        image_video_input = None #Noneに変換
+
     #読み方が変わっていれば音声変換してパスを取得
     if reading_line != frame_data[1] :
-        model_name, model_id, speaker_id = selected_model_tuple_state
-        audio_file_path = generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id)
-        frame_data[2] = audio_file_path
+        model_name, model_id, speaker_id = selected_model_tuple_state #モデル情報を取得
+        audio_file_path = create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id) #音声変換
+        frame_data[2] = audio_file_path #フレームデータに音声パスを追加
 
-
-    frame_data[0] = subtitle_line
-    frame_data[1] = reading_line
-    frame_data[6] = image_video_input
-    frame_data[8] = preview_image_path
+    frame_data[0] = subtitle_line #字幕
+    frame_data[1] = reading_line #読み方
+    frame_data[6] = image_video_input #画像
+    frame_data[8] = preview_image_path #プレビュー画像
 
     # 更新されたフレームデータをリストに戻す
     frame_data_list[selected_index] = tuple(frame_data)
 
     # UIコンポーネントを更新
     return update_ui_elements(selected_index)
+
 
 # 読み方用のテキストエリアでEnterキーが押されたときの処理
 def on_reading_input_submit(evt, subtitle_line, reading_line, image_video_input):
@@ -190,63 +191,24 @@ def on_reading_input_submit(evt, subtitle_line, reading_line, image_video_input)
     return gr.update()
 
 
-
 # ギャラリーのインデックスが選択されたときに呼び出される関数
 def handle_gallery_click(evt: gr.SelectData, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state):
     global frame_data_list
     
-    new_selected_index = evt.index
+    new_selected_index = evt.index#ギャラリーのインデックスを取得
 
-    # # デバッグ用にselected_indexの値を確認
-    # if selected_index is None:
-    #     print("Error: selected_index is None", frame_data_list)
-    # else:
-    #     print(f"selected_index is set to: {selected_index}", frame_data_list)
-
-    # 現在のフレームデータを取得
-    current_frame_data = frame_data_list[selected_index]
+    current_frame_data = frame_data_list[selected_index]#現在のフレームデータを取得
 
     # 現在のデータと新しいデータを比較
-    if (current_frame_data[0] != subtitle_input or current_frame_data[1] != reading_input or current_frame_data[6] != image_video_input):            
+    if (current_frame_data[0] != subtitle_input or current_frame_data[1] != reading_input or current_frame_data[6] != image_video_input): 
+        whiteboard_image_path = current_frame_data[6]
         # データが異なる場合のみ更新
-        if image_video_input is None:
-            on_update_reading_click(subtitle_input, reading_input, r"Asset\Greenbak.png", selected_index, selected_model_tuple_state)
-        else:
-            on_update_reading_click(subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state)
+        on_update_reading_click(subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path)
 
     # 次に表示するUI要素を更新
     preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input = update_ui_elements(new_selected_index)
 
-    # # print(f"image_video_input: {image_video_input}")
-    # if image_video_input == r"Asset\Greenbak.png":
-    #     image_video_input = None
-
     return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, new_selected_index
-
-
-
-# SBTV2_APIからモデル一覧を取得する関数
-# 例となるデータ
-# model_list = [
-#     ("AI-Hakase-Test2", "0", 0),
-#     ("AI-Hakase-v1", "1", 0)
-def fetch_voice_synthesis_models():
-    response = requests.get("http://127.0.0.1:5000/models/info")  # 適切なAPIエンドポイントに置き換えてください
-    if response.status_code == 200:
-        models = response.json()
-        model_list = []
-        model_names = []
-        for model_id, model_info in models.items():
-            speaker_name = list(model_info["id2spk"].values())[0]
-            speaker_id = list(model_info["spk2id"].values())[0]
-            model_list.append((speaker_name, model_id, speaker_id))
-            model_names.append(speaker_name)
-        return model_list, model_names
-    else:
-        print("モデル一覧の取得に失敗しました。")
-        return [], []
-
-
 
 
 # Gradioアプリケーションの構築
@@ -265,10 +227,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             with gr.Tab("読み上げ設定"):
                 # キャラ
                 character_name_input = gr.Textbox(label="メインキャラクター名", value=character_name)
-                model_list, model_names = fetch_voice_synthesis_models()
+                model_list, model_names = create_subtitle_voice.fetch_voice_synthesis_models()
                 model_list_state = gr.State(model_list)  # モデル情報のタプルを保持
                 voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=voice_synthesis_model)
-                # voice_synthesis_model_dropdown = gr.Dropdown(["model1", "model2", "model3"], label="音声合成モデル", value=voice_synthesis_model)
                 reading_speed_slider = gr.Slider(0.5, 2.0, value=reading_speed, step=0.1, label="読み上げ速度")
 
                 # 選択されたモデルのタプルを保持するための変数
@@ -356,7 +317,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         with gr.Column():
             test_playback_button = gr.Audio(value=r"bgm\default_bgm.wav ", type="filepath", label="テスト再生", scale=1)
-            preview_images = gr.Gallery(label="画像/動画フレーム一覧", elem_id="frame_gallery",scale=2)
+            preview_images = gr.Gallery(label="画像/動画フレーム一覧", elem_id="frame_gallery", scale=2)
             
         with gr.Column():
             with gr.Tab("テキスト・画像・動画編集"):
@@ -367,10 +328,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     with gr.Row():
                         update_reading_button = gr.Button("変更",scale=1)
                 with gr.Column(scale=1):
-                    image_video_input = gr.File(label="画像/動画選択", file_types=["image", "video"], interactive=True)
+                    image_video_input = gr.File(label="画像/動画選択", file_types=["image", "video"], interactive=True, height=400)
                     with gr.Row():
-                        preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", visible=False, scale=3)
-                        preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", visible=False, scale=3)
+                        preview_image_output = gr.ImageEditor(label="画像プレビュー", elem_id="image_preview_output", interactive=True, visible=False, scale=3, height=400)
+                        preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True, visible=False, scale=3, height=400)
                         delete_image_video_button = gr.Button("削除", visible=False, scale=1)
 
             # with gr.Tab("画像・動画編集"):
@@ -385,13 +346,17 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 emotion_dropdown = gr.Dropdown(label="表情選択")#, choices=["neutral", "happy", "sad", "angry"])
                 motion_dropdown = gr.Dropdown(label="モーション選択")#, choices=["idle", "nod", "shake", "point"])
                 with gr.Row():
-                    vtuber_character_output = gr.Video(sources=["webcam"], label="Vtuberキャラクター", scale=3)
+                    with gr.Column(scale=3):
+                        vtuber_character_output = gr.Interface(
+                        fn=vtuber_camera.get_frame,
+                        inputs=[],
+                        outputs=gr.Image(type="numpy", label="VTuber Camera"),
+                        live=True,
+                        submit_btn="",  # Submitボタンを非表示にする
+                        clear_btn=None,   # Clearボタンを非表示にする
+                        allow_flagging="never",  # Flagボタンを非表示にする
+                        )
                     vtuber_character_update_button = gr.Button("変更", scale=1)
-
-                # vtuber_character_output =gr.Interface(fn=custom_html, inputs=[], outputs=gr.HTML())
-                # video_preview_output = gr.HTML(value=custom_html())
-                # video_output = gr.HTML(video_feed)
-                # demo = gr.Interface(lambda: "", inputs=[], outputs=video_output, allow_flagging="never")
 
 
     with gr.Row():
@@ -421,14 +386,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     # 読み方更新ボタンのクリックイベント設定
     update_reading_button.click(
         fn=on_update_reading_click,
-        inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state],
+        inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path],
         outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input]
     )
 
     # Vtuberキャラクター更新ボタンのクリックイベント設定    
     vtuber_character_update_button.click(
         fn=on_update_reading_click,
-        inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state],
+        inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path],
         outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input]
     )
 
@@ -460,22 +425,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     print_variables_button.click(fn=print_variables)
 
 
-    # # 読み方入力フィールドのサブミットイベント設定
-    # reading_input.submit(
-    #     fn=on_reading_input_submit,
-    #     inputs=[reading_input, subtitle_input, image_video_input],
-    #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
-    # )
-
-    # hidden_outputの値が変更されたときにupdate_ui_elementsを呼び出す
-    # hidden_output.change(
-    #     fn=update_frame_data_list,
-    #     inputs=[hidden_output],
-    #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
-    # )
-    
+    # 動画準備開始ボタンのクリックイベント設定
     generate_video_button.click(
-    fn=generate_video,
+    fn=generate_video.generate_video,
     inputs=[
         csv_file_input,
         bgm_file_input,
@@ -492,6 +444,19 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     show_progress=True
     )
 
+    # # 読み方入力フィールドのサブミットイベント設定
+    # reading_input.submit(
+    #     fn=on_reading_input_submit,
+    #     inputs=[reading_input, subtitle_input, image_video_input],
+    #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
+    # )
+
+    # hidden_outputの値が変更されたときにupdate_ui_elementsを呼び出す
+    # hidden_output.change(
+    #     fn=update_frame_data_list,
+    #     inputs=[hidden_output],
+    #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
+    # )
 
     # update_emotion_shortcuts_button.click(
     #     fn=update_emotion_shortcut,
