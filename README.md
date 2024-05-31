@@ -84,8 +84,19 @@ pip freeze > requirements.txt
 
 プルリクエストや改善提案は歓迎します。問題やバグがある場合は、Issueを作成してください。
 
+## Memo
+
+OBS Studioの設定
+
+OBS Studioを起動します。
+シーンを作成し、必要なソース（背景画像、動画、音声）をシーンに追加します。
+音声ソースは入力のみで出力しない設定にしておきます。
 
 
+OBS WebSocketの設定
 
-
+OBS StudioにWebSocketプラグインをインストールします。
+WebSocketサーバーのIPアドレス、ポート、パスワードを設定します。
+PythonスクリプトからOBS StudioのWebSocketサーバーに接続します。
+https://github.com/obsproject/obs-websocket/releases
 

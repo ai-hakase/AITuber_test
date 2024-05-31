@@ -5,7 +5,9 @@ from moviepy.editor import VideoFileClip
 import gradio as gr
 from constants import *
 import cv2
+import numpy as np
 from PIL import Image
+import shutil
 
 
 
@@ -44,6 +46,57 @@ def save_as_temp_file_audio(audio_data, suffix=".wav", desired_directory="tmp"):
         return temp_file_path
 
 
+# 動画を一時ファイルとして保存しパスを返す関数  
+def save_as_temp_video(video_data, suffix=".mp4", desired_directory="tmp"):
+    create_directory(desired_directory)
+    temp_video_path = os.path.join(desired_directory, f"temp_video{suffix}")
+    
+    # 動画データを一時ファイルに書き出す
+    with open(temp_video_path, 'wb') as f:
+        f.write(video_data)
+    
+    # 動画を読み込む
+    video = cv2.VideoCapture(temp_video_path)
+    
+    # 動画の元のサイズとFPSを取得
+    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = video.get(cv2.CAP_PROP_FPS)
+    
+    # 動画の出力先を設定
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(temp_video_path, fourcc, fps, (width, height))
+    
+    # 動画をフレームごとに読み込み、書き出す
+    while True:
+        ret, frame = video.read()
+        if not ret:
+            break
+        
+        out.write(frame)
+    
+    # リソースを解放
+    video.release()
+    out.release()
+    
+    return temp_video_path
+
+
+
+# tmpフォルダーの中身を全て削除する関数 
+def delete_tmp_files():
+    # tmp フォルダーの中身を全て削除する
+    tmp_directory = 'tmp'
+    for filename in os.listdir(tmp_directory):
+        file_path = os.path.join(tmp_directory, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f'ファイル {file_path} の削除中にエラーが発生しました。エラー: {e}')
+
 
 
 # 動画の最初の部分をキャプチャーして画像として返す
@@ -69,15 +122,51 @@ def capture_first_frame(video_path):
     return img
 
 
+# 解説画像が動画ファイルの場合、最初のフレームを抽出して使用
+def load_image_or_video(path):
+    if path.lower().endswith(('.mp4', '.avi', '.mov')):
+        img = capture_first_frame(path)
+        if img is None:
+            raise ValueError("動画からフレームを抽出できませんでした。")
+    else:
+        img = Image.open(path)
+    return img
+
+
 # グリーンバックの色(00FF00)を透明に変換
 def process_transparentize_green_back(img):
-    img = img.convert("RGBA")
-    width, height = img.size
-    for x in range(width):
-        for y in range(height):
-            r, g, b, a = img.getpixel((x, y))
-            if r == 0 and g == 255 and b == 0:
-                img.putpixel((x, y), (0, 0, 0, 0))
+    # PILイメージをNumPy配列に変換
+    img_array = np.array(img)
+
+    # RGB色空間からBGR色空間に変換
+    img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+
+    # BGR色空間からHSV色空間に変換
+    hsv = cv2.cvtColor(img_array, cv2.COLOR_BGR2HSV)
+
+    # グリーンバックの色範囲を定義
+    lower_green = np.array([40, 50, 50])
+    upper_green = np.array([80, 255, 255])
+
+    # グリーンバックのマスクを作成
+    mask = cv2.inRange(hsv, lower_green, upper_green)
+
+    # BGR色空間からRGBA色空間に変換
+    img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGBA)
+
+    # 透明にする値の配列を作成
+    transparent_color = np.zeros_like(img_array, dtype=np.uint8)
+    transparent_color[:, :, 3] = 0  # アルファチャンネルを0（透明）に設定
+
+    # マスクを4次元に拡張
+    mask_4d = np.repeat(mask[:, :, np.newaxis], 4, axis=2)
+
+    # マスクを使用して透明にする
+    img_array[mask_4d > 0] = transparent_color[mask_4d > 0]
+
+    # NumPy配列をPILイメージに変換
+    img = Image.fromarray(img_array)
+
     return img
 
 
@@ -146,3 +235,52 @@ def convert_bgm_to_wav(filename):
         return filename
 
 
+# メディアをリサイズする関数
+def resize_media(media_path, target_width, target_height):
+    # メディアのタイプを判定
+    media_type = 'video' if media_path.endswith(('.mp4', '.avi', '.mov')) else 'image'
+
+    if media_type == 'image':
+        # 画像の読み込み
+        image = Image.open(media_path)
+        
+        # RGBAモードに変換
+        image = image.convert("RGBA")
+        
+        # 画像をリサイズ
+        resized_image = image.resize((target_width, target_height), Image.LANCZOS).convert("RGBA")
+                
+        return resized_image
+    
+    elif media_type == 'video':
+        # 動画の読み込み
+        video = cv2.VideoCapture(media_path)
+        
+        # 動画の元のサイズを取得
+        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # 動画の元のFPSとフレーム数を取得
+        fps = video.get(cv2.CAP_PROP_FPS)
+        frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        
+        # 動画の出力先を設定
+        resized_video_path = 'resized_' + os.path.basename(media_path)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(resized_video_path, fourcc, fps, (target_width, target_height))
+        
+        # 動画をフレームごとに読み込み、リサイズして書き出す
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                break
+            
+            resized_frame = cv2.resize(frame, (target_width, target_height))
+            out.write(resized_frame)
+        
+        # リソースを解放
+        video.release()
+        out.release()
+        
+        return video
