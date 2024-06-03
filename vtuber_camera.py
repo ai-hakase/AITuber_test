@@ -1,6 +1,8 @@
 import cv2
 import pyvirtualcam
 import sys
+import numpy as np
+
 from PIL import Image
 
 # VTuberCameraクラス
@@ -21,7 +23,7 @@ class VTuberCamera:
 
     # カメラからフレームをキャプチャする関数
     def capture_camera_frame(self):
-        cam = pyvirtualcam.Camera(width=self.width, height=self.height, fps=16)
+        cam = pyvirtualcam.Camera(width=self.width, height=self.height, fps=24)
         while True:
             ret, frame = self.cap.read()
             if not ret:
@@ -33,8 +35,8 @@ class VTuberCamera:
             # 仮想カメラにフレームを送信
             cam.send(frame)
             cam.sleep_until_next_frame()
-            yield frame
-
+            yield cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # yield frame    
 
     # カメラを開始する関数
     def start(self):

@@ -3,10 +3,13 @@ from utils import *
 from edit_medias import EditMedia
 from create_subtitle_voice import CreateSubtitleVoice
 from setup_vtuber_keys import SetupVtuberKeys
+from render import FrameData
+
 
 class GenerateVideo:
 
     def __init__(self):
+        self.frame_data_list:list[FrameData] = []
 
         # インスタンスの生成
         self.edit_medias = EditMedia()
@@ -22,6 +25,8 @@ class GenerateVideo:
             self.main_character: None,
             "other": None
         }
+
+        self.default_explanation_image_path = r"Asset/Greenbak.png"
 
         # プレビューエリアを作成 → 動画の大きさ
         self.preview_width = 1920
@@ -49,17 +54,20 @@ class GenerateVideo:
         # 解説画像を読み込む
         explanation_img = load_image_or_video(explanation_image_path)
 
+
         # 背景画像を合成
         self.preview.paste(background, (0, 0))
 
-        # ホワイトボード画像に解説画像を合成する
-        explanation_x = (whiteboard_img.width - explanation_img.width) // 2#解説画像の位置を計算
-        explanation_y = (whiteboard_img.height - explanation_img.height) // 2#解説画像の位置を計算
-        whiteboard_img.paste(explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
+        
         # ホワイトボード画像を合成
         whiteboard_x = 30#ホワイトボード画像の位置を計算
         whiteboard_y = 30#ホワイトボード画像の位置を計算
         self.preview.paste(whiteboard_img, (whiteboard_x, whiteboard_y), mask=whiteboard_img)#ホワイトボード画像を合成
+
+        # ホワイトボード画像に解説画像を合成する
+        explanation_x = (whiteboard_img.width - explanation_img.width) // 2 + whiteboard_x#解説画像の位置を計算
+        explanation_y = (whiteboard_img.height - explanation_img.height) // 2 + whiteboard_y#解説画像の位置を計算
+        self.preview.paste(explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
 
         # Vキャラ画像を合成
         # リサイズ後の位置を計算
@@ -81,8 +89,9 @@ class GenerateVideo:
     # 動画生成の主要な処理を行う関数
     def generate_video(self, csv_file_input, bgm_file_input, background_video_file_input, character_name_input, model_list_state, selected_model_tuple_state, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
        
-        global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
-        frame_data_list.clear() # フレームデータのリストをクリア
+        # global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
+        # frame_data_list = [] # フレームデータのリストをクリア
+        self.frame_data_list.clear() # フレームデータのリストをクリア
 
         delete_tmp_files() #tmpフォルダーの中身を全て削除する
 
@@ -102,32 +111,6 @@ class GenerateVideo:
         # print(f"選択されたモデル: {model_name}, モデルID: {model_id}, 話者ID: {speaker_id}")
 
 
-        # プレビュー画像の生成
-        bgm_file_input = bgm_file_input
-        background_video_file_input = background_video_file_input
-
-        # 字幕画像の生成
-        test_subtitle_img = self.edit_medias.generate_subtitle("subtitle_line", self.preview_width, self.preview_height)#字幕画像の生成
-
-        # Vキャラ画像を生成
-        test_vtuber_img = self.edit_medias.create_vtuber_image()
-
-        # ホワイトボード画像を生成
-        whiteboard_subtitle_height = test_subtitle_img.height // 2 +20#調整
-        VTuber_subtitle_height = test_vtuber_img.width -150#調整
-        whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, VTuber_subtitle_height, whiteboard_subtitle_height)
-        whiteboard_image_path = save_as_temp_file(whiteboard_image)
-
-        # 解説画像(初期値：グリーンバック)を生成
-        explanation_image_path = r"Asset/Greenbak.png"
-        explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
-        # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
-        explanation_img = self.edit_medias.resize_image_aspect_ratio(explanation_img, whiteboard_image.width - 20, whiteboard_image.height - 20)
-        # 解説画像の周りにボーダーを追加
-        explanation_img = self.edit_medias.add_border(explanation_img, 10)
-        explanation_image_path = save_as_temp_file(explanation_img)
-
-
         # キャラクター・セリフ情報を処理
         for character, line in character_lines:
 
@@ -140,8 +123,8 @@ class GenerateVideo:
             audio_file = self.create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id)
 
             # キャラクター事にショートカットキーを選択
-            # emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
-            emotion_shortcut, motion_shortcut = 'alt+n', 'alt+0'
+            emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
+            # emotion_shortcut, motion_shortcut = 'alt+n', 'alt+0'
 
             # 字幕画像の生成
             subtitle_img = self.edit_medias.generate_subtitle(subtitle_line, self.preview_width, self.preview_height)#字幕画像の生成
@@ -151,31 +134,46 @@ class GenerateVideo:
             vtuber_img = self.edit_medias.create_vtuber_image()
             vtuber_img_path = save_as_temp_file(vtuber_img)
 
+            # ホワイトボード画像を生成
+            whiteboard_subtitle_height = subtitle_img.height // 2 +20#調整
+            VTuber_subtitle_height = vtuber_img.width -150#調整
+            whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, VTuber_subtitle_height, whiteboard_subtitle_height)
+            whiteboard_image_path = save_as_temp_file(whiteboard_image)
+
+            # 解説画像(初期値：グリーンバック)を生成
+            explanation_image_path = self.default_explanation_image_path
+            explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
+            # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
+            explanation_img = self.edit_medias.resize_image_aspect_ratio(explanation_img, whiteboard_image.width - 20, whiteboard_image.height - 20)
+            # 解説画像の周りにボーダーを追加
+            explanation_img = self.edit_medias.add_border(explanation_img, 5)
+            explanation_image_path = save_as_temp_file(explanation_img)
+
             # プレビュー画像を生成
             preview_image = self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path)
 
             # フレームデータの生成とリストへの保存
-            frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model)
-            frame_data_list.append(frame_data)
-
-        subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model = frame_data_list[0]
-        preview_images = [frame_data[8] for frame_data in frame_data_list]
+            frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, self.default_explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model)
+            self.frame_data_list.append(FrameData(frame_data))
 
         print(f"動画準備終了\n")
 
+        # return の準備
+        subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model = self.frame_data_list[0]
+        preview_images = [frame_data[8] for frame_data in self.frame_data_list]
         # frame_data_listの中身をわかりやすくそれぞれに名前をつけて表示
-        print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line},\n audio_file: {audio_file},\n emotion_shortcut: {emotion_shortcut},\n motion_shortcut: {motion_shortcut},\n explanation_image_path: {explanation_image_path},\n whiteboard_image_path: {whiteboard_image_path},\n subtitle_image_path: {subtitle_image_path},\n preview_images: {preview_images},\n selected_model: {selected_model}")
+        print(f"[0]subtitle_line: {subtitle_line},\n [1]reading_line: {reading_line},\n [2]audio_file: {audio_file},\n [3]emotion_shortcut: {emotion_shortcut},\n [4]motion_shortcut: {motion_shortcut},\n [5]explanation_image_path: {explanation_image_path},\n [6]whiteboard_image_path: {whiteboard_image_path},\n [7]subtitle_image_path: {subtitle_image_path},\n [8]preview_images: {preview_images},\n [9]selected_model: {selected_model}")
 
         return subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_images, selected_model
 
 # 出力例
-#  subtitle_line: 今回は、VTube Studioを使ってAI Tuberを作る方法ということで,
-#  reading_line: 今回は、ブイチューブ スタジオを使ってAI Tuberを作る方法ということで,
-#  audio_file: C:\Users\okozk\Test\Gradio\tmp\tmpr5k7jr4u.wav,
-#  emotion_shortcut: alt+n,
-#  motion_shortcut: alt+0,
-#  explanation_image_path: C:\Users\okozk\Test\Gradio\tmp\tmp3hrn9cgo.png,
-#  whiteboard_image_path: C:\Users\okozk\Test\Gradio\tmp\tmptgciqmxh.png,
-#  subtitle_image_path: C:\Users\okozk\Test\Gradio\tmp\tmpvm6adeii.png,
-#  preview_images: ['C:\\Users\\okozk\\Test\\Gradio\\tmp\\tmpj7nixtsm.png', 'C:\\Users\\okozk\\Test\\Gradio\\tmp\\tmpabnne5up.png'],
-#  selected_model: ['AI-Hakase-v1', '1', 0]
+#  [0]subtitle_line: 今回は、VTube Studioを使ってAI Tuberを作る方法ということで,
+#  [1]reading_line: 今回は、ブイチューブ スタジオを使ってAI Tuberを作る方法ということで,
+#  [2]audio_file: C:\Users\okozk\Test\Gradio\tmp\tmpy8__6q9t.wav,
+#  [3]emotion_shortcut: alt+n,
+#  [4]motion_shortcut: alt+0,
+#  [5]explanation_image_path: C:\Users\okozk\Test\Gradio\tmp\tmpw5j373i1.png,
+#  [6]whiteboard_image_path: C:\Users\okozk\Test\Gradio\tmp\tmp_t2tf5ia.png,
+#  [7]subtitle_image_path: C:\Users\okozk\Test\Gradio\tmp\tmp4khf8ym5.png,
+#  [8]preview_images: ['C:\\Users\\okozk\\Test\\Gradio\\tmp\\tmpq_542tpi.png', 'C:\\Users\\okozk\\Test\\Gradio\\tmp\\tmpymq62jpd.png'],
+#  [9]selected_model: ['AI-Hakase-v1', '1', 0]

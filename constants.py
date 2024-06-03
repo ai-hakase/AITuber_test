@@ -17,4 +17,4 @@ PLUGIN_NAME = "AI Tuber Test Program"
 PLUGIN_DEVELOPER = "AI-Hakase"
 
 # グローバル変数でフレームデータリストを保持
-frame_data_list = []
+# frame_data_list = []
