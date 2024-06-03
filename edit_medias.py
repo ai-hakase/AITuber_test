@@ -44,6 +44,31 @@ class EditMedia:
         return resized_image
 
 
+    # アスペクト比を維持しながら、指定した横幅または高さに基づいてリサイズ後の寸法を計算
+    def resize_aspect_ratio(self, current_width, current_height, target_width, target_height):
+        aspect_ratio = current_width / current_height
+        
+        if target_width is not None and target_height is not None:
+            target_aspect_ratio = target_width / target_height
+            if aspect_ratio > target_aspect_ratio:
+                new_width = target_width
+                new_height = int(new_width / aspect_ratio)
+            else:
+                new_height = target_height
+                new_width = int(new_height * aspect_ratio)
+        elif target_width is not None:
+            new_width = target_width
+            new_height = int(new_width / aspect_ratio)
+        elif target_height is not None:
+            new_height = target_height
+            new_width = int(new_height * aspect_ratio)
+        else:
+            new_width = current_width
+            new_height = current_height
+        
+        return new_width, new_height
+
+
     # 動画のアスペクト比を維持しながらリサイズ 
     def resize_video_aspect_ratio(self, input_path, output_path, target_width=None, target_height=None):
         # 動画クリップを読み込む

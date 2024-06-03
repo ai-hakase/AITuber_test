@@ -1,10 +1,11 @@
-import gradio as gr
-from ui import *
+from ui import UI
 import os
-import subprocess
+import asyncio
 
 
 if __name__ == "__main__":
-
-    demo.launch()
+    ui = UI()
+    print(os.path.abspath("start.py"))
+    # asyncio.run(ui.launch())
+    asyncio.run(ui.create_ui())
 

@@ -45,13 +45,18 @@ class SetupVtuberKeys:
         """
         ショートカットキーをランダムにキーを選択する関数
         """
-        if character == self.main_character:
+        if character == "葉加瀬あい":
+        # if character == self.main_character:
             emotion = self.analyze_sentiment(line)
             emotion_shortcut = emotion_shortcuts.get(emotion)
-            motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
-            self.last_motion_shortcut[self.main_character] = motion_shortcut
+            # motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
+            # self.last_motion_shortcut[self.main_character] = motion_shortcut
+            motion_shortcut = [key for _, key in actions[TALKING]]
+            # motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
+            # self.last_motion_shortcut[self.main_character] = motion_shortcut
         else:
             emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
-            motion_shortcut = self.press_random_key(actions[WAITING], self.last_motion_shortcut["other"])
-            self.last_motion_shortcut["other"] = motion_shortcut
+            motion_shortcut = [key for _, key in actions[WAITING]]
+            # motion_shortcut = self.press_random_key(actions[WAITING], self.last_motion_shortcut["other"])
+            # self.last_motion_shortcut["other"] = motion_shortcut
         return emotion_shortcut, motion_shortcut

@@ -71,7 +71,7 @@ class CreateSubtitleVoice:
             "accept": "audio/wav"
         }
 
-        print(subtitle_line, reading_line, model_name, model_id, speaker_id)
+        # print(subtitle_line, reading_line, model_name, model_id, speaker_id)
 
         text = reading_line
         # assist_text = None

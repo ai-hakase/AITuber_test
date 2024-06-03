@@ -135,8 +135,14 @@ def load_image_or_video(path):
 
 # グリーンバックの色(00FF00)を透明に変換
 def process_transparentize_green_back(img):
-    # PILイメージをNumPy配列に変換
-    img_array = np.array(img)
+
+    # PILイメージの場合
+    if isinstance(img, Image.Image):
+        # PILイメージをNumPy配列に変換
+        img_array = np.array(img)
+    # NumPy配列の場合
+    else:
+        img_array = img
 
     # RGB色空間からBGR色空間に変換
     img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
@@ -164,8 +170,13 @@ def process_transparentize_green_back(img):
     # マスクを使用して透明にする
     img_array[mask_4d > 0] = transparent_color[mask_4d > 0]
 
-    # NumPy配列をPILイメージに変換
-    img = Image.fromarray(img_array)
+    # PILイメージの場合
+    if isinstance(img, Image.Image):
+        # NumPy配列をPILイメージに変換
+        img = Image.fromarray(img_array)
+    # NumPy配列の場合
+    else:
+        img = img_array
 
     return img
 
