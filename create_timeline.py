@@ -4,6 +4,8 @@ import os
 import random
 import asyncio
 import queue
+import librosa
+import sounddevice as sd
 
 from PIL import Image
 from moviepy.editor import AudioFileClip, ImageClip, VideoFileClip, CompositeVideoClip, concatenate_videoclips, ColorClip
@@ -27,12 +29,22 @@ class Timeline:
 
         # フレームのクリップを格納するリスト
         self.final_clip = None
+
+
         self.frame_clips = []
+        self.subtitle_image_clips = []
+        self.streaming_clips = []  # ストリーミング中の映像クリップを保持するリスト
+
 
         self.background_video_path = background_video_path
         self.preview_height, self.preview_width = 1080,1920 # 解像度を取得
 
         self.hotkeys = []
+
+        self.AUDIO_DEVICE_INDEX = 59
+        self.device_info = sd.query_devices(self.AUDIO_DEVICE_INDEX, 'output')
+
+
 
         # ショートカットキーのIDを格納するリスト
         self.emotion_shortcut_keys = []
@@ -51,17 +63,45 @@ class Timeline:
     # タイムラインの作成
     async def create(self):
 
+        # VTS　API　接続
         await self.hotkey_trigger.connect()
+        # ショートカットキーの取得
         self.hotkeys = await self.hotkey_trigger.get_hotkeys()
-
+        # フレームデータの処理
         for frame_data in self.frame_data_list:
             await self._add_media_to_timeline(frame_data)
-
+        # VTS　API　切断
         await self.hotkey_trigger.disconnect()
+
 
         # frame_clips = [frame_data[11] for frame_data in self.frame_data_list]
         # フレームのクリップを連結して最終的な動画を作成
-        self.final_clip = concatenate_videoclips(self.frame_clips)
+        frame_clip = concatenate_videoclips(self.frame_clips)
+    
+        # 3.subtitle_image_clipをリサイズ
+        subtitle_clip = concatenate_videoclips(self.subtitle_image_clips)
+        subtitle_clip = subtitle_clip.resize(width=self.preview_width)
+        subtitle_clip = subtitle_clip.set_position(("center", "bottom"))
+
+        # ストリーミング中の映像をリサイズ
+        streaming_clip = concatenate_videoclips(self.streaming_clips)
+        streaming_video_clip_w_start = streaming_clip.w/4 -20#調整
+        streaming_video_clip_w_end = streaming_clip.w*3/4 +20#調整
+        resized_streaming_video_clip = streaming_clip.crop(x1=streaming_video_clip_w_start, x2=streaming_video_clip_w_end)
+        resized_streaming_video_clip = resized_streaming_video_clip.resize(height=self.preview_height*0.7)
+        resized_streaming_video_clip = resized_streaming_video_clip.set_position(("right", "center"))
+
+        # ホワイトボード画像を合成,字幕画像を合成
+        composed_stream = CompositeVideoClip([
+            frame_clip,
+            resized_streaming_video_clip,
+            subtitle_clip,
+        ])
+
+        # フィルターグラフに合成　-> 最終的に動画として書き出すもの
+        # self.final_clip = concatenate_videoclips(composed_stream, method="compose")
+        self.final_clip = composed_stream
+
 
         # 動画の再生とショートカットキーの送信を別スレッドで開始
         # threading.Thread(target=self.play_video).start()
@@ -165,7 +205,7 @@ class Timeline:
 
     def _add_streaming_video(self, audio_duration, result_queue):
         # ストリーミング中の映像を録画するためのクリップリスト
-        streaming_clips = []
+        # streaming_clips = []
 
         # 音声ファイルが流れている間、ストリーミング中の映像を録画
         for t in range(int(audio_duration * 24)):  # 24fpsを想定
@@ -181,20 +221,60 @@ class Timeline:
             frame_RGBA = process_transparentize_green_back(frame_rgb)
 
             streaming_clip = ImageClip(frame_RGBA).set_duration(1/24)  # 24fpsを想定
-            streaming_clips.append(streaming_clip)
-
-        streaming_video_clip = concatenate_videoclips(streaming_clips)# ストリーミング中の映像のクリップを結合
+            self.streaming_clips.append(streaming_clip)
         
-       # 2.streaming_video_clipをリサイズ
-        # 左右から1/4ずつ切り取る
-        streaming_video_clip_w_start = streaming_video_clip.w/4 -20#調整
-        streaming_video_clip_w_end = streaming_video_clip.w*3/4 +20#調整
-        streaming_video_clip = streaming_video_clip.crop(x1=streaming_video_clip_w_start, x2=streaming_video_clip_w_end)
-        streaming_video_clip = streaming_video_clip.resize(height=self.preview_height*0.7)
-        streaming_video_clip = streaming_video_clip.set_position(("right", "center"))
 
-        # 結果をキューに入れる
-        result_queue.put(streaming_video_clip)
+    #    # 2.streaming_video_clipをリサイズ
+    #     # 左右から1/4ずつ切り取る
+    #     streaming_video_clip = concatenate_videoclips(self.streaming_clips)# ストリーミング中の映像のクリップを結合
+    #     # streaming_video_clip_w_start = streaming_video_clip.w/4 -20#調整
+    #     # streaming_video_clip_w_end = streaming_video_clip.w*3/4 +20#調整
+    #     # streaming_video_clip = streaming_video_clip.crop(x1=streaming_video_clip_w_start, x2=streaming_video_clip_w_end)
+    #     # streaming_video_clip = streaming_video_clip.resize(height=self.preview_height*0.7)
+    #     # streaming_video_clip = streaming_video_clip.set_position(("right", "center"))
+
+    #     # 結果をキューに入れる
+    #     result_queue.put(streaming_video_clip)
+
+
+
+    # オーディオファイルの再生
+    def vtuber_play_audio(self, audio_file):
+
+        # AUDIO_DEVICE_INDEX = 59
+
+        data, samplerate = librosa.load(audio_file, sr=data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate']))
+        # data, samplerate = librosa.load(audio_file, sr=None)
+
+        print(f"音声の再生を開始\n{self.device_info}")
+
+        # current_frame = 0
+
+        sd.play(data, samplerate=samplerate, device=self.AUDIO_DEVICE_INDEX)
+        sd.wait()
+
+        print(f"音声の再生が完了")
+
+
+        # def callback(outdata, frames, time, status):
+        #     nonlocal current_frame
+
+        #     if status:
+        #         print(status)
+        #     chunksize = min(len(data) - current_frame, frames)
+
+        #     outdata[:chunksize] = data[current_frame:current_frame + chunksize].reshape(-1, 1)
+
+        #     if chunksize < frames:
+        #         outdata[chunksize:] = 0
+        #         raise sd.CallbackStop()
+
+        #     current_frame += chunksize
+
+        # with sd.OutputStream(samplerate=samplerate, device=AUDIO_DEVICE_INDEX, channels=1, callback=callback) as stream:
+        #     stream.start()
+        #     stop_event.wait()  # stop_eventがセットされるまで待機
+
 
 
     # 各音声ファイルを順番にフィルターグラフに追加
@@ -206,6 +286,21 @@ class Timeline:
         audio_clip = AudioFileClip(frame_data.audio_file).set_fps(44100)  # 44100は一般的なサンプリングレートです
         audio_duration = audio_clip.duration
         # frame_data.audio_duration = audio_duration
+
+
+        # ストリーミング中の映像を録画  
+        result_queue = queue.Queue()
+        streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration, result_queue))
+        streaming_thread.start()
+        
+
+        audio_thread = threading.Thread(target=self.vtuber_play_audio, args=(frame_data.audio_file))
+        audio_thread.start()
+
+
+
+
+
 
         # ショートカットキーの入力
         # self.hotkeys から Name がemotion_shortcut_key と motion_shortcut_key と一致するhotkeyIDを取得
@@ -236,14 +331,6 @@ class Timeline:
                 print(f"Skipping duplicate emotion shortcut: {selected_emotion_shortcut}")
             # await asyncio.sleep(0.3)  # 適宜、待機時間を調整してください
 
-        # ストリーミング中の映像を録画  
-        # streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration,))
-        # streaming_thread.start()
-        # self._add_streaming_video(audio_duration)
-        result_queue = queue.Queue()
-        streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration, result_queue))
-        streaming_thread.start()
-        
 
         # 背景動画をクリップに変換
         background_video = VideoFileClip(self.background_video_path)
@@ -302,9 +389,6 @@ class Timeline:
         background_video_stream = background_video_clip.resize((self.preview_width, self.preview_height))
         background_video_stream = background_video_stream.set_position((0, 0))
 
-         # 3.subtitle_image_clipをリサイズ
-        subtitle_image_clip = subtitle_image_clip.resize(width=self.preview_width)
-        subtitle_image_clip = subtitle_image_clip.set_position(("center", "bottom"))
 
         # 4.whiteboard_image_clipをリサイズ
         # ホワイトボード画像のサイズを調整
@@ -335,18 +419,14 @@ class Timeline:
         explanation_clip = explanation_clip.set_position((explanation_x + whiteboard_position_w, explanation_y + whiteboard_position_h))
 
 
-        # スレッドから結果を取得
-        streaming_thread.join()  # スレッドの終了を待つ
-        streaming_video_clip = result_queue.get()#ストリーミング中の映像のクリップを取得
-
         # ホワイトボード画像を合成,字幕画像を合成
         composed_stream = CompositeVideoClip([
             background_video_stream,
             whiteboard_image_clip,
             # whiteboard_bk_image_clip,
             explanation_clip,
-            streaming_video_clip,
-            subtitle_image_clip,
+            # streaming_video_clip,
+            # subtitle_image_clip,
         ])
 
         # 音声を設定
@@ -354,12 +434,22 @@ class Timeline:
 
         # フレームのクリップをリストに追加
         self.frame_clips.append(composed_stream)
+        self.subtitle_image_clips.append(subtitle_image_clip)
+
+        # スレッドから結果を取得
+        audio_thread.join()
+        streaming_thread.join()  # スレッドの終了を待つ
+        # streaming_video_clip = result_queue.get()#ストリーミング中の映像のクリップを取得
+        # self.streaming_clips.append(streaming_video_clip)
+
+
+
+        # self.frame_clips.append(composed_stream.crossfadein(0.5))  # クロスフェードを追加
         # frame_data.frame_clips.append(composed_stream)
         # print(f"frame_data.frame_clips: {composed_stream}")
         # # 座標調整用
         # subtitle_img = Image.open(frame_data.subtitle_image_path).convert("RGBA") # 字幕画像を読み込む       
         # vtuber_img = Image.open(TestData.vtuber_character_path).convert("RGBA")  # Vキャラ画像を読み込む
-
 
 
 

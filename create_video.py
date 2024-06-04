@@ -32,6 +32,6 @@ class CreateVideo:
 
         # final_video.write_videofile(self.output_file, codec='libx264', audio_codec='aac', fps=24, ffmpeg_params=ffmpeg_params)
         # 動画を書き出し
-        final_video = final_clip.write_videofile(self.output_file, codec='libx264', audio_codec='aac', fps=24)
+        final_clip.write_videofile(self.output_file, codec='libx264', audio_codec='aac', fps=24)
         # final_video.write_videofile(self.output_file, codec='libx264', audio_codec='aac', fps=24, ffmpeg_params=ffmpeg_params)
 
