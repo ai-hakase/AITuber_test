@@ -223,8 +223,9 @@ class Timeline:
             # await asyncio.sleep(0.3)  # 適宜、待機時間を調整してください
 
         # ストリーミング中の映像を録画  
-        streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration,))
-        streaming_thread.start()
+        # streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration,))
+        # streaming_thread.start()
+        self._add_streaming_video(audio_duration)
 
         preview_height, preview_width = 1080,1920 # 解像度を取得
 
@@ -249,6 +250,7 @@ class Timeline:
        
         # 解説画像をクリップに変換
         # 画像か動画化で分岐
+        print(f"frame_data.explanation_image_path: {frame_data.explanation_image_path}")
         if frame_data.explanation_image_path.endswith(('.png', '.jpg', '.jpeg','webp')):
             explanation_clip = ImageClip(frame_data.explanation_image_path).set_duration(audio_duration) 
         else:
@@ -278,7 +280,7 @@ class Timeline:
         # subtitle_image_clip = self._fade_clip(subtitle_image_clip, audio_duration,fade_duration=0.1)# 字幕画像のフェードイン・フェードアウト
 
         
-        streaming_thread.join()# ストリーミングの録画が完了するのを待つ
+        # streaming_thread.join()# ストリーミングの録画が完了するのを待つ
         streaming_video_clip = concatenate_videoclips(self.streaming_clips)# ストリーミング中の映像のクリップを結合
 
         # リサイズ

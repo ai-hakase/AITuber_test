@@ -32,7 +32,7 @@ class UI:
         self.create_subtitle_voice = CreateSubtitleVoice()
         # self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
         self.handle_gallery_event = HandleGalleryEvent()
-        self.handle_frame_event = HandleFrameEvent()
+        self.handle_frame_event = HandleFrameEvent(self.generate_video)  # インスタンスを渡す
 
         # 設定ファイルの読み込み
         self.character_name, self.voice_synthesis_model, self.reading_speed, self.output_folder, self.bgm_file, self.background_video_file, self.emotion_shortcuts, self.actions, self.dics = load_settings(DEFAULT_SETTING_FILE)
@@ -140,7 +140,7 @@ class UI:
             # 動画準備
             generate_video_button = gr.Button("感情分析・動画準備開始（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", elem_classes="font-size: 10px",scale=1)
             # 変数をコンソールに表示するボタン
-            print_variables_button = gr.Button("変数をコンソールに表示")
+            # print_variables_button = gr.Button("変数をコンソールに表示")
 
 
             with gr.Row():
@@ -291,28 +291,21 @@ class UI:
 
             # 動画準備開始ボタンのクリックイベント設定
             generate_video_button.click(
-            fn=self.generate_video.generate_video,
-            inputs=[
-                csv_file_input,
-                bgm_file_input,
-                background_video_file_input,
-                character_name_input,
-                model_list_state,
-                selected_model_tuple_state,
-                reading_speed_slider,
-                registered_words_table,
-                emotion_shortcuts_state,
-                actions_state
-            ],
-            outputs=[subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, subtitle_image_path, preview_images, selected_model_tuple_state],
-            show_progress=True
+                fn=self.handle_frame_event.reset_frame_data_list,
+                inputs=[],
+                outputs=[frame_data_list_state]
+            ).then(
+                fn=self.generate_video.generate_video,
+                inputs=[csv_file_input, bgm_file_input, background_video_file_input, character_name_input, model_list_state, selected_model_tuple_state, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state],
+                outputs=[subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, subtitle_image_path, preview_images, selected_model_tuple_state, frame_data_list_state],
+                show_progress=True
             )
 
 
             # 動画生成開始ボタンのクリックイベント設定
             create_video_button.click(
                 fn=self.handle_frame_event.create_video,
-                inputs=[output_folder_input, bgm_file_input, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path],
+                inputs=[output_folder_input, bgm_file_input, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list_state],
                 outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input]
             )
 
