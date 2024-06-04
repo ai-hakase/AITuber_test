@@ -144,9 +144,14 @@ class HandleFrameEvent:
     # 動画作成ボタンがクリックされたときの処理
     async def create_video(self, output_folder_input, bgm_file_input, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list: list[FrameData]):
         # global frame_data_list
+    
+
+        print(f"image_video_input: {image_video_input}")
+        if image_video_input == None:
+            image_video_input = frame_data_list[selected_index].explanation_image_path
 
         preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input = self.on_update_reading_click(subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list)
-
+    
         # final_frame_data_list = []
         # for frame in frame_data_list:
         #     frame_data = FrameData(*frame)
@@ -158,6 +163,7 @@ class HandleFrameEvent:
         background_video_path = "background_video\default_video.mp4"
         output_file_path = os.path.join(output_folder_input, "output-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".mp4")
         print(f"output_file_path: {output_file_path}")
+
         create_video = CreateVideo(frame_data_list, output_file_path, background_video_path)
         # create_video = CreateVideo(final_frame_data_list, output_file_path)
         
@@ -166,4 +172,4 @@ class HandleFrameEvent:
         task.add_done_callback(lambda t: print("動画の作成が完了しました"))
         # await create_video.create_video_run()
 
-        return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input   
+        return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, None   
