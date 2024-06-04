@@ -87,11 +87,15 @@ class GenerateVideo:
 
 
     # 動画生成の主要な処理を行う関数
-    def generate_video(self, csv_file_input, bgm_file_input, background_video_file_input, character_name_input, model_list_state, selected_model_tuple_state, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
+    def generate_video(self, *args):
+        # *args を個別の変数に展開
+        csv_file_input, bgm_file_input, background_video_file_input, character_name_input, model_list_state, selected_model_tuple_state, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state = args
        
         # global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
         # frame_data_list = [] # フレームデータのリストをクリア
         self.frame_data_list.clear() # フレームデータのリストをクリア
+
+        print(f"frame_data_list: {self.frame_data_list}")
 
         delete_tmp_files() #tmpフォルダーの中身を全て削除する
 
@@ -153,18 +157,30 @@ class GenerateVideo:
             preview_image = self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path)
 
             # フレームデータの生成とリストへの保存
-            frame_data = (subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, self.default_explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model)
-            self.frame_data_list.append(FrameData(frame_data))
+            frame_data = FrameData(
+                subtitle_line=subtitle_line,
+                reading_line=reading_line,
+                audio_file=audio_file,
+                emotion_shortcut=emotion_shortcut,
+                motion_shortcut=motion_shortcut,
+                explanation_image_path=self.default_explanation_image_path,
+                whiteboard_image_path=whiteboard_image_path,
+                subtitle_image_path=subtitle_image_path,
+                preview_image=preview_image,
+                selected_model=selected_model
+            )
+            self.frame_data_list.append(frame_data)
 
         print(f"動画準備終了\n")
 
         # return の準備
-        subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model = self.frame_data_list[0]
-        preview_images = [frame_data[8] for frame_data in self.frame_data_list]
+        first_frame_data = self.frame_data_list[0]
+        # subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model = self.frame_data_list[0]
+        preview_images = [frame_data.preview_image for frame_data in self.frame_data_list]
         # frame_data_listの中身をわかりやすくそれぞれに名前をつけて表示
         print(f"[0]subtitle_line: {subtitle_line},\n [1]reading_line: {reading_line},\n [2]audio_file: {audio_file},\n [3]emotion_shortcut: {emotion_shortcut},\n [4]motion_shortcut: {motion_shortcut},\n [5]explanation_image_path: {explanation_image_path},\n [6]whiteboard_image_path: {whiteboard_image_path},\n [7]subtitle_image_path: {subtitle_image_path},\n [8]preview_images: {preview_images},\n [9]selected_model: {selected_model}")
 
-        return subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_images, selected_model
+        return first_frame_data.subtitle_line, first_frame_data.reading_line, first_frame_data.audio_file, first_frame_data.emotion_shortcut, first_frame_data.motion_shortcut, None, first_frame_data.whiteboard_image_path, first_frame_data.subtitle_image_path, preview_images, first_frame_data.selected_model, self.frame_data_list
 
 # 出力例
 #  [0]subtitle_line: 今回は、VTube Studioを使ってAI Tuberを作る方法ということで,
