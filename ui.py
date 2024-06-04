@@ -301,7 +301,6 @@ class UI:
                 show_progress=True
             )
 
-
             # 動画生成開始ボタンのクリックイベント設定
             create_video_button.click(
                 fn=self.handle_frame_event.create_video,

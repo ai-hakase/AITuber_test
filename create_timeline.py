@@ -3,12 +3,13 @@ import sys
 import os
 import random
 import asyncio
+import queue
 
 from PIL import Image
 from moviepy.editor import AudioFileClip, ImageClip, VideoFileClip, CompositeVideoClip, concatenate_videoclips, ColorClip
 from render import FrameData
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
-
+from utils import save_as_temp_file
 
 # 一つ上の階層のパスを取得
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -29,9 +30,8 @@ class Timeline:
         self.frame_clips = []
 
         self.background_video_path = background_video_path
+        self.preview_height, self.preview_width = 1080,1920 # 解像度を取得
 
-        # ストリーミング中の映像を録画するためのクリップリスト
-        self.streaming_clips = []
         self.hotkeys = []
 
         # ショートカットキーのIDを格納するリスト
@@ -136,8 +136,6 @@ class Timeline:
         clip = clip.crossfadein(fade_duration).crossfadeout(fade_duration)
         return clip
 
-
-
     # 黒い枠をつける関数
     def _add_black_frame(self, explanation_clip):
         # 黒い枠を作成
@@ -165,7 +163,10 @@ class Timeline:
         return final_clip
     
 
-    def _add_streaming_video(self, audio_duration):
+    def _add_streaming_video(self, audio_duration, result_queue):
+        # ストリーミング中の映像を録画するためのクリップリスト
+        streaming_clips = []
+
         # 音声ファイルが流れている間、ストリーミング中の映像を録画
         for t in range(int(audio_duration * 24)):  # 24fpsを想定
             # frame = self.vtuber_camera.capture_camera_frame()
@@ -180,7 +181,20 @@ class Timeline:
             frame_RGBA = process_transparentize_green_back(frame_rgb)
 
             streaming_clip = ImageClip(frame_RGBA).set_duration(1/24)  # 24fpsを想定
-            self.streaming_clips.append(streaming_clip)
+            streaming_clips.append(streaming_clip)
+
+        streaming_video_clip = concatenate_videoclips(streaming_clips)# ストリーミング中の映像のクリップを結合
+        
+       # 2.streaming_video_clipをリサイズ
+        # 左右から1/4ずつ切り取る
+        streaming_video_clip_w_start = streaming_video_clip.w/4 -20#調整
+        streaming_video_clip_w_end = streaming_video_clip.w*3/4 +20#調整
+        streaming_video_clip = streaming_video_clip.crop(x1=streaming_video_clip_w_start, x2=streaming_video_clip_w_end)
+        streaming_video_clip = streaming_video_clip.resize(height=self.preview_height*0.7)
+        streaming_video_clip = streaming_video_clip.set_position(("right", "center"))
+
+        # 結果をキューに入れる
+        result_queue.put(streaming_video_clip)
 
 
     # 各音声ファイルを順番にフィルターグラフに追加
@@ -225,9 +239,11 @@ class Timeline:
         # ストリーミング中の映像を録画  
         # streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration,))
         # streaming_thread.start()
-        self._add_streaming_video(audio_duration)
-
-        preview_height, preview_width = 1080,1920 # 解像度を取得
+        # self._add_streaming_video(audio_duration)
+        result_queue = queue.Queue()
+        streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration, result_queue))
+        streaming_thread.start()
+        
 
         # 背景動画をクリップに変換
         background_video = VideoFileClip(self.background_video_path)
@@ -279,44 +295,33 @@ class Timeline:
         subtitle_image_clip = ImageClip(frame_data.subtitle_image_path).set_duration(audio_duration)
         # subtitle_image_clip = self._fade_clip(subtitle_image_clip, audio_duration,fade_duration=0.1)# 字幕画像のフェードイン・フェードアウト
 
-        
         # streaming_thread.join()# ストリーミングの録画が完了するのを待つ
-        streaming_video_clip = concatenate_videoclips(self.streaming_clips)# ストリーミング中の映像のクリップを結合
 
         # リサイズ
         # 1.background_video_clipをリサイズ
-        background_video_stream = background_video_clip.resize((preview_width, preview_height))
+        background_video_stream = background_video_clip.resize((self.preview_width, self.preview_height))
         background_video_stream = background_video_stream.set_position((0, 0))
 
-        # 2.streaming_video_clipをリサイズ
-        # 左右から1/4ずつ切り取る
-        streaming_video_clip_w_start = streaming_video_clip.w/4 -20#調整
-        streaming_video_clip_w_end = streaming_video_clip.w*3/4 +20#調整
-        streaming_video_clip = streaming_video_clip.crop(x1=streaming_video_clip_w_start, x2=streaming_video_clip_w_end)
-        streaming_video_clip = streaming_video_clip.resize(height=preview_height*0.7)
-        streaming_video_clip = streaming_video_clip.set_position(("right", "center"))
-
-        # 3.subtitle_image_clipをリサイズ
-        subtitle_image_clip = subtitle_image_clip.resize(width=preview_width)
+         # 3.subtitle_image_clipをリサイズ
+        subtitle_image_clip = subtitle_image_clip.resize(width=self.preview_width)
         subtitle_image_clip = subtitle_image_clip.set_position(("center", "bottom"))
 
         # 4.whiteboard_image_clipをリサイズ
         # ホワイトボード画像のサイズを調整
-        target_height = preview_height - subtitle_image_clip.h +160#調整
-        target_width = preview_width - streaming_video_clip.w +100#調整
+        vtuber_image = self.vtuber_camera.capture_image()
+        target_height = self.preview_height - subtitle_image_clip.h +160#調整
+        target_width = self.preview_width - vtuber_image.width +100#調整
+        # target_width = preview_width - streaming_video_clip.w +100#調整
         new_width, new_height = self.resize_aspect_ratio(whiteboard_image_clip.w, whiteboard_image_clip.h, target_width, target_height)
         whiteboard_image_clip = whiteboard_image_clip.resize((new_width, new_height))
         # ホワイトボード画像の位置を計算
         whiteboard_position_w, whiteboard_position_h = 30, 30
         whiteboard_image_clip = whiteboard_image_clip.set_position((whiteboard_position_w, whiteboard_position_h))
-        # 黒塗りの画像を作成_テスト用
-        black_image = Image.new("RGB", (whiteboard_image_clip.w, whiteboard_image_clip.h), "black")
-        # 一時ファイルのパスを作成 → 
-        with tempfile.TemporaryFile(suffix=".png") as temp_file:
-            # 現在のディレクトリに保存
-            black_image.save("black_image.png")
-            whiteboard_bk_image_clip = ImageClip("black_image.png").set_duration(audio_duration) 
-        whiteboard_bk_image_clip = whiteboard_bk_image_clip.set_position((whiteboard_position_w, whiteboard_position_h))
+        # # 黒塗りの画像を作成_テスト用
+        # black_image = Image.new("RGB", (whiteboard_image_clip.w, whiteboard_image_clip.h), "black") # 黒い画像を作成
+        # black_image_path = save_as_temp_file(black_image)#一時ファイルのパスを作成
+        # whiteboard_bk_image_clip = ImageClip(black_image_path).set_duration(audio_duration) # 黒い画像をクリップに変換
+        # whiteboard_bk_image_clip = whiteboard_bk_image_clip.set_position((whiteboard_position_w, whiteboard_position_h))#黒い画像の位置を計算
 
         # 5.explanation_clipをリサイズ
         # 解説画像のサイズを調整
@@ -328,7 +333,11 @@ class Timeline:
         explanation_x = (whiteboard_image_clip.w - explanation_clip.w) // 2
         explanation_y = (whiteboard_image_clip.h - explanation_clip.h) // 2
         explanation_clip = explanation_clip.set_position((explanation_x + whiteboard_position_w, explanation_y + whiteboard_position_h))
-        
+
+
+        # スレッドから結果を取得
+        streaming_thread.join()  # スレッドの終了を待つ
+        streaming_video_clip = result_queue.get()#ストリーミング中の映像のクリップを取得
 
         # ホワイトボード画像を合成,字幕画像を合成
         composed_stream = CompositeVideoClip([
