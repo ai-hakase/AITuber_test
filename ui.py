@@ -188,15 +188,17 @@ class UI:
                             vtuber_character_update_button = gr.Button("変更", scale=1)
             with gr.Row():
                 with gr.Column(scale=4):
-                    video_preview_output = gr.Video(label="現在のフレームをプレビュー")
+                    video_preview_output = gr.Video(label="生成された動画のプレビュー")
+                    progress_bar = gr.Progress()
+
                 with gr.Column():
                     create_video_button = gr.Button("動画生成開始", scale=1, elem_classes="font-size: 10px")
                     cancel_button = gr.Button("キャンセル", scale=1, elem_classes="font-size: 10px")
 
-            completion_message_output = gr.Textbox(label="生成完了メッセージ", interactive=False) #visible=False
-            progress_bar = gr.Progress()
-            # rendering_progress_output = gr.Textbox(label="レンダリング進行中", interactive=False)
-            generated_video_preview_output = gr.Video(label="生成された動画のプレビュー")
+            # completion_message_output = gr.Textbox(label="生成完了メッセージ", interactive=False) #visible=False
+            # progress_bar = gr.Progress()
+            # # rendering_progress_output = gr.Textbox(label="レンダリング進行中", interactive=False)
+            # generated_video_preview_output = gr.Video(label="生成された動画のプレビュー")
 
 
             # UIコンポーネントの設定
@@ -305,7 +307,7 @@ class UI:
             create_video_button.click(
                 fn=self.handle_frame_event.create_video,
                 inputs=[output_folder_input, bgm_file_input, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list_state],
-                outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input]
+                outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, video_preview_output]
             )
 
             demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)

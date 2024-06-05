@@ -62,6 +62,7 @@ class HandleFrameEvent:
         # ギャラリーのインデックスがNoneの場合の処理
         if selected_index is None:
             raise ValueError(f"selected_index is -> {selected_index}")
+            
         print(f"\n selected_index is -> {selected_index} !!!")
 
         # image_video_input が None の場合の処理
@@ -117,8 +118,8 @@ class HandleFrameEvent:
         # global frame_data_list
         
         new_selected_index = evt.index#ギャラリーのインデックスを取得
-        print(f"new_selected_index: {new_selected_index}")
-        print(f"selected_index: {selected_index}")
+        # print(f"new_selected_index: {new_selected_index}")
+        # print(f"selected_index: {selected_index}")
 
         current_frame_data: FrameData = frame_data_list[selected_index]#現在のフレームデータを取得
 
@@ -139,6 +140,17 @@ class HandleFrameEvent:
         #     image_video_input = None #Noneに変換
             
         return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, None, new_selected_index
+
+
+
+    # def on_video_creation_complete(self, task, selected_index, frame_data_list):
+    #     try:
+    #         task.result()  # 例外が発生していないか確認
+    #         print("動画の作成が完了しました")
+    #         # UIコンポーネントを更新
+    #         self.update_ui_elements(selected_index, frame_data_list)
+    #     except Exception as e:
+    #         print(f"動画の作成中にエラーが発生しました: {e}")
 
 
     # 動画作成ボタンがクリックされたときの処理
@@ -162,14 +174,16 @@ class HandleFrameEvent:
 
         background_video_path = "background_video\default_video.mp4"
         output_file_path = os.path.join(output_folder_input, "output-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".mp4")
-        print(f"output_file_path: {output_file_path}")
+        # print(f"output_file_path: {output_file_path}")
 
         create_video = CreateVideo(frame_data_list, output_file_path, background_video_path)
         # create_video = CreateVideo(final_frame_data_list, output_file_path)
-        
+        await create_video.create_video_run()
+
         # 別スレッドで実行
-        task = asyncio.create_task(create_video.create_video_run())
-        task.add_done_callback(lambda t: print("動画の作成が完了しました"))
+        # task = asyncio.create_task(create_video.create_video_run())
+        # task.add_done_callback(lambda t: print("動画の作成が完了しました"))
+        # task.add_done_callback(lambda t: self.on_video_creation_complete(t, selected_index, frame_data_list))
         # await create_video.create_video_run()
 
-        return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, None   
+        return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, None, output_file_path 

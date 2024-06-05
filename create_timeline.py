@@ -243,7 +243,9 @@ class Timeline:
 
         # AUDIO_DEVICE_INDEX = 59
 
-        data, samplerate = librosa.load(audio_file, sr=data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate']))
+        # data, samplerate = librosa.load(audio_file, sr=data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate']))
+        data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate'])
+
         # data, samplerate = librosa.load(audio_file, sr=None)
 
         print(f"音声の再生を開始\n{self.device_info}")
@@ -282,7 +284,7 @@ class Timeline:
     # バーチャルキャラクターをストリーミングで表示しながらクリップを作成する。そしてショートカットキーもその時に入力するようにする点
     async def _add_media_to_timeline(self, frame_data: FrameData):
 
-        # 音声ファイルの再生時間を取得
+        # 音声ファイルの再生時間を取得　-> 🌟音声ファイルがループ再生されないようにする。再生が終わったら終了するようにする。
         audio_clip = AudioFileClip(frame_data.audio_file).set_fps(44100)  # 44100は一般的なサンプリングレートです
         audio_duration = audio_clip.duration
         # frame_data.audio_duration = audio_duration
@@ -293,8 +295,7 @@ class Timeline:
         streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration, result_queue))
         streaming_thread.start()
         
-
-        audio_thread = threading.Thread(target=self.vtuber_play_audio, args=(frame_data.audio_file))
+        audio_thread = threading.Thread(target=self.vtuber_play_audio, args=(frame_data.audio_file,))
         audio_thread.start()
 
 
