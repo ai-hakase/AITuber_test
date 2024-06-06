@@ -30,21 +30,17 @@ class Timeline:
         # フレームのクリップを格納するリスト
         self.final_clip = None
 
-
         self.frame_clips = []
         self.subtitle_image_clips = []
         self.streaming_clips = []  # ストリーミング中の映像クリップを保持するリスト
-
 
         self.background_video_path = background_video_path
         self.preview_height, self.preview_width = 1080,1920 # 解像度を取得
 
         self.hotkeys = []
 
-        self.AUDIO_DEVICE_INDEX = 59
+        self.AUDIO_DEVICE_INDEX = 78 # 78 CABLE-A Input (VB-Audio Cable A , WASAPI (0 in, 2 out) - 48000.0 Hz
         self.device_info = sd.query_devices(self.AUDIO_DEVICE_INDEX, 'output')
-
-
 
         # ショートカットキーのIDを格納するリスト
         self.emotion_shortcut_keys = []
@@ -59,6 +55,7 @@ class Timeline:
         self.background_video_start_time = 0# 背景動画の再生時間
         self.explanation_video_start_time = 0# 解説動画の再生時間
         self.previous_video_duration = 0# 前の動画の長さ
+
 
     # タイムラインの作成
     async def create(self):
@@ -102,7 +99,6 @@ class Timeline:
         # self.final_clip = concatenate_videoclips(composed_stream, method="compose")
         self.final_clip = composed_stream
 
-
         # 動画の再生とショートカットキーの送信を別スレッドで開始
         # threading.Thread(target=self.play_video).start()
 
@@ -135,30 +131,6 @@ class Timeline:
         return new_width, new_height
 
 
-    # ショートカットキーを押す関数
-    def press_shortcut(self, emotion_shortcut, motion_shortcut):
-        # 表情のショートカットキーを送信
-        print(f"Pressing emotion shortcut: {emotion_shortcut}")
-        for key in emotion_shortcut.split('+'):
-            print(f"Press {key}")
-        for key in reversed(emotion_shortcut.split('+')):
-            print(f"Release {key}")
-
-        # 動作のショートカットキーを送信
-        print(f"Pressing motion shortcut: {motion_shortcut}")
-        for key in motion_shortcut.split('+'):
-            print(f"Press {key}")
-        for key in reversed(motion_shortcut.split('+')):
-            print(f"Release {key}")
-
-
-    # 動画の切り替え時にショートカットキーを押す
-    def on_clip_change(self, t):
-        # フレームデータリストから表情と動作のショートカットキーを取得
-        emotion_shortcut = self.frame_data_list[self.frame_index].emotion_shortcut
-        motion_shortcut = self.frame_data_list[self.frame_index].motion_shortcut
-        self.press_shortcut(emotion_shortcut,motion_shortcut)  # 表情の切り替え時にショートカットキーを押す
-
     # フェードイン・フェードアウトの処理
     def _fade_opacity(self, t, duration):
         fade_duration = 0.5  # フェードイン・フェードアウトの時間を調整
@@ -168,13 +140,15 @@ class Timeline:
             opacity = (duration - t) / fade_duration
         else:
             opacity = 1
-        print(f"t: {t}, duration: {duration}, opacity: {opacity}")  # デバッグプリント
+        # print(f"t: {t}, duration: {duration}, opacity: {opacity}")  # デバッグプリント
         return opacity
+    
 
      # フェードイン・フェードアウトの時間を調整
     def _fade_clip(self, clip, duration, fade_duration=0.5):
         clip = clip.crossfadein(fade_duration).crossfadeout(fade_duration)
         return clip
+
 
     # 黒い枠をつける関数
     def _add_black_frame(self, explanation_clip):
@@ -203,9 +177,15 @@ class Timeline:
         return final_clip
     
 
-    def _add_streaming_video(self, audio_duration, result_queue):
+    def _add_streaming_video(self, audio_duration, audio_file):
         # ストリーミング中の映像を録画するためのクリップリスト
         # streaming_clips = []
+
+        # audio_thread = threading.Thread(target=self.vtuber_play_audio, args=(audio_file,))
+        # audio_thread.start()
+
+        data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate'])
+        sd.play(data, samplerate=samplerate, device=self.AUDIO_DEVICE_INDEX)
 
         # 音声ファイルが流れている間、ストリーミング中の映像を録画
         for t in range(int(audio_duration * 24)):  # 24fpsを想定
@@ -215,14 +195,19 @@ class Timeline:
             frame = next(self.vtuber_camera.get_frame())
             # frame = next(frame)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            cv2.imshow("Frame", frame)
-            cv2.waitKey(1)
+            
+            # cv2.imshow("Frame", frame)
+            # キー入力待ち
+            # cv2.waitKey(1)
 
             frame_RGBA = process_transparentize_green_back(frame_rgb)
 
             streaming_clip = ImageClip(frame_RGBA).set_duration(1/24)  # 24fpsを想定
             self.streaming_clips.append(streaming_clip)
-        
+
+        sd.wait()
+
+        # audio_thread.join()
 
     #    # 2.streaming_video_clipをリサイズ
     #     # 左右から1/4ずつ切り取る
@@ -240,43 +225,9 @@ class Timeline:
 
     # オーディオファイルの再生
     def vtuber_play_audio(self, audio_file):
-
-        # AUDIO_DEVICE_INDEX = 59
-
-        # data, samplerate = librosa.load(audio_file, sr=data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate']))
         data, samplerate = librosa.load(audio_file, sr=self.device_info['default_samplerate'])
-
-        # data, samplerate = librosa.load(audio_file, sr=None)
-
-        print(f"音声の再生を開始\n{self.device_info}")
-
-        # current_frame = 0
-
         sd.play(data, samplerate=samplerate, device=self.AUDIO_DEVICE_INDEX)
         sd.wait()
-
-        print(f"音声の再生が完了")
-
-
-        # def callback(outdata, frames, time, status):
-        #     nonlocal current_frame
-
-        #     if status:
-        #         print(status)
-        #     chunksize = min(len(data) - current_frame, frames)
-
-        #     outdata[:chunksize] = data[current_frame:current_frame + chunksize].reshape(-1, 1)
-
-        #     if chunksize < frames:
-        #         outdata[chunksize:] = 0
-        #         raise sd.CallbackStop()
-
-        #     current_frame += chunksize
-
-        # with sd.OutputStream(samplerate=samplerate, device=AUDIO_DEVICE_INDEX, channels=1, callback=callback) as stream:
-        #     stream.start()
-        #     stop_event.wait()  # stop_eventがセットされるまで待機
-
 
 
     # 各音声ファイルを順番にフィルターグラフに追加
@@ -292,26 +243,21 @@ class Timeline:
 
         # ストリーミング中の映像を録画  
         result_queue = queue.Queue()
-        streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration, result_queue))
+        streaming_thread = threading.Thread(target=self._add_streaming_video, args=(audio_duration, frame_data.audio_file))
         streaming_thread.start()
         
-        audio_thread = threading.Thread(target=self.vtuber_play_audio, args=(frame_data.audio_file,))
-        audio_thread.start()
-
-
-
-
+        # audio_thread = threading.Thread(target=self.vtuber_play_audio, args=(frame_data.audio_file,))
+        # audio_thread.start()
 
 
         # ショートカットキーの入力
         # self.hotkeys から Name がemotion_shortcut_key と motion_shortcut_key と一致するhotkeyIDを取得
         self.emotion_shortcut_keys = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.emotion_shortcut]
         self.motion_shortcut_keys = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.motion_shortcut]
-        print()
         
         # ショートカットキーの入力
         if self.motion_shortcut_keys:
-            print(f"motion_shortcut_keys: {self.motion_shortcut_keys}")
+            # print(f"motion_shortcut_keys: {self.motion_shortcut_keys}")
             selected_motion_shortcut = random.choice(self.motion_shortcut_keys)
             if selected_motion_shortcut != self.previous_motion_shortcut:
                 await self.hotkey_trigger.trigger_hotkey(selected_motion_shortcut)
@@ -322,7 +268,7 @@ class Timeline:
             # await asyncio.sleep(0.3)  # 適宜、待機時間を調整してください
 
         if self.emotion_shortcut_keys:
-            print(f"emotion_shortcut_keys: {self.emotion_shortcut_keys}")
+            # print(f"emotion_shortcut_keys: {self.emotion_shortcut_keys}")
             selected_emotion_shortcut = random.choice(self.emotion_shortcut_keys)
             if selected_emotion_shortcut != self.previous_emotion_shortcut:
                 await self.hotkey_trigger.trigger_hotkey(selected_emotion_shortcut)
@@ -354,7 +300,7 @@ class Timeline:
        
         # 解説画像をクリップに変換
         # 画像か動画化で分岐
-        print(f"frame_data.explanation_image_path: {frame_data.explanation_image_path}")
+        # print(f"frame_data.explanation_image_path: {frame_data.explanation_image_path}")
         if frame_data.explanation_image_path.endswith(('.png', '.jpg', '.jpeg','webp')):
             explanation_clip = ImageClip(frame_data.explanation_image_path).set_duration(audio_duration) 
         else:
@@ -411,8 +357,8 @@ class Timeline:
         # 5.explanation_clipをリサイズ
         # 解説画像のサイズを調整
         new_width, new_height = self.resize_aspect_ratio(explanation_clip.w, explanation_clip.h, whiteboard_image_clip.w-10, whiteboard_image_clip.h-10)
-        print(f"new_width: {new_width}")
-        print(f"new_height: {new_height}")
+        # print(f"new_width: {new_width}")
+        # print(f"new_height: {new_height}")
         explanation_clip = explanation_clip.resize((new_width, new_height))
         # 解説画像の位置を計算
         explanation_x = (whiteboard_image_clip.w - explanation_clip.w) // 2
@@ -438,7 +384,7 @@ class Timeline:
         self.subtitle_image_clips.append(subtitle_image_clip)
 
         # スレッドから結果を取得
-        audio_thread.join()
+        # audio_thread.join()
         streaming_thread.join()  # スレッドの終了を待つ
         # streaming_video_clip = result_queue.get()#ストリーミング中の映像のクリップを取得
         # self.streaming_clips.append(streaming_video_clip)
