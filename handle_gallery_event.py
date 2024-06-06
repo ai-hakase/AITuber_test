@@ -2,8 +2,9 @@ import os
 import csv
 import pprint
 import shutil
-from tkinter import filedialog
+import sounddevice as sd
 
+from tkinter import filedialog
 from ui import *
 from constants import *
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
@@ -104,13 +105,49 @@ class HandleGalleryEvent:
         return flat_actions
     
 
-        # ホットキーを読み込む
+    # ホットキーを読み込む
     async def load_hotkeys(self):
         await self.vts_hotkey_trigger.connect()
         hotkeys = await self.vts_hotkey_trigger.get_hotkeys()
         await self.vts_hotkey_trigger.disconnect()
         return [[hotkey['name'], hotkey['file']] for hotkey in hotkeys]
 
+
+    # オーディオデバイスを読み込む
+    async def load_audio_devices(self):
+        #オーディオデバイスの一覧を取得する
+        devices = sd.query_devices()
+
+        cable_devices = []
+
+        for device in devices:
+
+            if "CABLE" in device["name"] and device["max_output_channels"] >= 2:  # デバイス名で判定
+                device_number = device["index"]  # デバイス番号を取得
+                device_name = device["name"].replace(")", "")  # デバイス名を取得
+                hostapi = device["hostapi"] # ホストアピを取得
+                max_input_channels = device["max_input_channels"] # 入力チャネル数を取得
+                max_output_channels = device["max_output_channels"] # 出力チャネル数を取得
+                default_samplerate = device["default_samplerate"] # サンプルレートを取得
+
+                # # ホストアピからデバイスの種類を推測
+                device_type = "不明"
+                if hostapi == 0:
+                    device_type = "MME"
+                elif hostapi == 1:
+                    device_type = "DirectSound"
+                elif hostapi == 2:
+                    device_type = "ASIO"
+                elif hostapi == 3:
+                    device_type = "WASAPI"
+                elif hostapi == 4:
+                    device_type = "WDM-KS"
+
+                device_name = f"{device_name} , {device_type} ({max_input_channels} in, {max_output_channels} out) - {default_samplerate} Hz"
+                # タプルを作成してリストに追加
+                cable_devices.append((device_number, device_name))
+
+        return [[device_number, device_name] for device_number, device_name in cable_devices]
 
 
 #     # csvファイルの変更時の処理

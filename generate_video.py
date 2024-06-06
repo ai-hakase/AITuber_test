@@ -95,11 +95,11 @@ class GenerateVideo:
         # frame_data_list = [] # フレームデータのリストをクリア
         self.frame_data_list.clear() # フレームデータのリストをクリア
 
-        print(f"frame_data_list: {self.frame_data_list}")
+        # print(f"frame_data_list: {self.frame_data_list}")
 
         delete_tmp_files() #tmpフォルダーの中身を全て削除する
 
-        print(f"動画準備開始\n")
+        # print(f"動画準備開始\n")
 
         self.main_character = character_name_input#メインキャラクターを設定
 
@@ -121,7 +121,7 @@ class GenerateVideo:
             # 元のセリフを字幕用として変数に保持します。
             # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
             subtitle_line, reading_line = self.create_subtitle_voice.process_line(line, registered_words_table.values)
-            print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line} \n")
+            # print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line} \n")
 
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
             audio_file = self.create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id)
@@ -171,14 +171,14 @@ class GenerateVideo:
             )
             self.frame_data_list.append(frame_data)
 
-        print(f"動画準備終了\n")
+        # print(f"動画準備終了\n")
 
         # return の準備
         first_frame_data = self.frame_data_list[0]
         # subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model = self.frame_data_list[0]
         preview_images = [frame_data.preview_image for frame_data in self.frame_data_list]
         # frame_data_listの中身をわかりやすくそれぞれに名前をつけて表示
-        print(f"[0]subtitle_line: {subtitle_line},\n [1]reading_line: {reading_line},\n [2]audio_file: {audio_file},\n [3]emotion_shortcut: {emotion_shortcut},\n [4]motion_shortcut: {motion_shortcut},\n [5]explanation_image_path: {explanation_image_path},\n [6]whiteboard_image_path: {whiteboard_image_path},\n [7]subtitle_image_path: {subtitle_image_path},\n [8]preview_images: {preview_images},\n [9]selected_model: {selected_model}")
+        # print(f"[0]subtitle_line: {subtitle_line},\n [1]reading_line: {reading_line},\n [2]audio_file: {audio_file},\n [3]emotion_shortcut: {emotion_shortcut},\n [4]motion_shortcut: {motion_shortcut},\n [5]explanation_image_path: {explanation_image_path},\n [6]whiteboard_image_path: {whiteboard_image_path},\n [7]subtitle_image_path: {subtitle_image_path},\n [8]preview_images: {preview_images},\n [9]selected_model: {selected_model}")
 
         return first_frame_data.subtitle_line, first_frame_data.reading_line, first_frame_data.audio_file, first_frame_data.emotion_shortcut, first_frame_data.motion_shortcut, None, first_frame_data.whiteboard_image_path, first_frame_data.subtitle_image_path, preview_images, first_frame_data.selected_model, self.frame_data_list
 

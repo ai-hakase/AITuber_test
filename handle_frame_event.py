@@ -63,7 +63,7 @@ class HandleFrameEvent:
         if selected_index is None:
             raise ValueError(f"selected_index is -> {selected_index}")
             
-        print(f"\n selected_index is -> {selected_index} !!!")
+        # print(f"\n selected_index is -> {selected_index} !!!")
 
         # image_video_input が None の場合の処理
         if image_video_input is None:
@@ -158,7 +158,7 @@ class HandleFrameEvent:
         # global frame_data_list
     
 
-        print(f"image_video_input: {image_video_input}")
+        # print(f"image_video_input: {image_video_input}")
         if image_video_input == None:
             image_video_input = frame_data_list[selected_index].explanation_image_path
 
@@ -173,6 +173,10 @@ class HandleFrameEvent:
         # output_folder_input.value　+　output　+　タイムスタンプ　.mp4　がファイルパス
 
         background_video_path = "background_video\default_video.mp4"
+
+        # output_folder_inputがなければ作成する
+        if not os.path.exists(output_folder_input):
+            os.makedirs(output_folder_input)
         output_file_path = os.path.join(output_folder_input, "output-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".mp4")
         # print(f"output_file_path: {output_file_path}")
 

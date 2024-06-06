@@ -70,19 +70,23 @@ class UI:
                 with gr.Column(scale=2):
                     with gr.Tab("読み上げ設定"):
                         # キャラ
-                        character_name_input = gr.Textbox(label="メインキャラクター名", value=self.character_name)
+                        character_name_input = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
                         model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
                         model_list_state = gr.State(model_list)  # モデル情報のタプルを保持
                         voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.voice_synthesis_model)
                         reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.1, label="読み上げ速度")
 
-                        # 辞書
+                        # 読み方を登録するボタンを追加
+                        with gr.Row():
+                            register_reading_input = gr.Textbox(label="読み方を登録", lines=12, max_lines=12, interactive=True)
+                            register_reading_button = gr.Button("読み方を登録", scale=1)
+
+                    with gr.Tab("読み方登録"):
                         registered_words_table = gr.Dataframe(
                             headers=["単語/文章", "読み方"],
                             datatype=["str", "str"],
                             col_count=(2, "fixed"),
                             row_count=8,
-                            label="登録済み単語/文章一覧",
                             value=[[word, reading] for word, reading in self.dics.items()]
                         )
                         # show_registered_words_button = gr.Button("登録済み単語/文章一覧表示")#→全体画面表示する。
@@ -92,6 +96,7 @@ class UI:
                             # edit_word_button = gr.Button("編集") # 
                             # delete_word_button = gr.Button("削除")
 
+                        # 辞書
                     with gr.Tab("ショートカット設定"):
                         emotion_shortcuts_input = gr.Dataframe(
                             headers=["Emotion", "Shortcut"],
@@ -115,7 +120,7 @@ class UI:
 
                     with gr.Tab("VTSホットキー一覧"):
                         hotkeys_data = gr.Dataframe(
-                            headers=["name", "file"],
+                            headers=["ホットキー名", "ファイルパス"],
                             scale=1,
                             col_count=(2, "fixed"),
                             type="array",
@@ -124,13 +129,24 @@ class UI:
                             interactive=False
                         )
 
+                    # タプルを表示する
+                    with gr.Tab("再生用オーディオデバイス"):
+                        audio_devices = gr.Dataframe(
+                            headers=["デバイス番号", "デバイス名"],
+                            scale=1,
+                            col_count=(2, "fixed"),
+                            type="array",
+                            value=[],
+                            interactive=False
+                        )
+
                     with gr.Tab("保存先・設定ファイル"):
                         # 動画保存先
                         output_folder_input = gr.Textbox(label="動画保存先", value=self.output_folder)
                         change_output_folder_button = gr.Button("保存先変更")
                         # 設定ファイル読み込み
-                        settings_folder_display = gr.Textbox(label="設定フォルダ", value=DEFAULT_SETTINGS_FOLDER, interactive=False)
-                        settings_file_path_input = gr.Textbox(label="読み込み対象の設定ファイルパス", value=DEFAULT_SETTING_FILE)
+                        settings_folder_display = gr.Textbox(label="設定フォルダ", value=DEFAULT_SETTINGS_FOLDER, interactive=True)
+                        settings_file_path_input = gr.Textbox(label="読み込み対象の設定ファイルパス", value=DEFAULT_SETTING_FILE, interactive=True)
                         load_settings_button = gr.Button("設定ファイル読み込み")
                         with gr.Row():
                             new_settings_name_input = gr.Textbox(label="新規設定ファイル名")
@@ -309,8 +325,8 @@ class UI:
                 inputs=[output_folder_input, bgm_file_input, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list_state],
                 outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, video_preview_output]
             )
-
             demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)
+            demo.load(fn=self.handle_gallery_event.load_audio_devices, inputs=[], outputs=audio_devices)
         demo.launch()
 
 
