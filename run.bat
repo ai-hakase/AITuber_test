@@ -6,7 +6,7 @@ if "%ERRORLEVEL%"=="0" (
     echo AI Tuber Test は既に実行中です。
 ) else (
     echo AI Tuber Test を起動します。
-    venv\scripts\activate
+    @REM venv\scripts\activate
     python main.py
 )
 pause
