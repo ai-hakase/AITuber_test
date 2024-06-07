@@ -15,6 +15,7 @@ class GenerateVideo:
         self.edit_medias = EditMedia()
         self.create_subtitle_voice = CreateSubtitleVoice()
         self.setup_vtuber_keys = SetupVtuberKeys()
+        # self.handle_frame_event = HandleFrameEvent()
 
         # メインキャラクター
         self.main_character = None
@@ -87,10 +88,13 @@ class GenerateVideo:
 
 
     # 動画生成の主要な処理を行う関数
-    def generate_video(self, *args):
-        # *args を個別の変数に展開
-        csv_file_input, bgm_file_input, background_video_file_input, character_name_input, model_list_state, selected_model_tuple_state, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state = args
-       
+    def generate_video(self, csv_file_input, bgm_file_input, background_video_file_input, 
+                    character_name_input, model_list_state, selected_model_tuple_state, 
+                    reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
+
+        from handle_frame_event import HandleFrameEvent
+        handle_frame_event = HandleFrameEvent(self)
+
         # global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
         # frame_data_list = [] # フレームデータのリストをクリア
         self.frame_data_list.clear() # フレームデータのリストをクリア
@@ -120,11 +124,11 @@ class GenerateVideo:
 
             # 元のセリフを字幕用として変数に保持します。
             # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
-            subtitle_line, reading_line = self.create_subtitle_voice.process_line(line, registered_words_table.values)
+            subtitle_line, reading_line = self.create_subtitle_voice.process_line(line, registered_words_table)
             # print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line} \n")
 
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
-            audio_file = self.create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id)
+            audio_file = self.create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id, reading_speed_slider)
 
             # キャラクター事にショートカットキーを選択
             emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
@@ -158,8 +162,11 @@ class GenerateVideo:
 
             # フレームデータの生成とリストへの保存
             frame_data = FrameData(
+                character_name=character,
                 subtitle_line=subtitle_line,
                 reading_line=reading_line,
+                reading_speed=reading_speed_slider,
+                selected_model=selected_model,
                 audio_file=audio_file,
                 emotion_shortcut=emotion_shortcut,
                 motion_shortcut=motion_shortcut,
@@ -167,7 +174,7 @@ class GenerateVideo:
                 whiteboard_image_path=whiteboard_image_path,
                 subtitle_image_path=subtitle_image_path,
                 preview_image=preview_image,
-                selected_model=selected_model
+                # background_video_path=background_video_file_input
             )
             self.frame_data_list.append(frame_data)
 
@@ -180,7 +187,9 @@ class GenerateVideo:
         # frame_data_listの中身をわかりやすくそれぞれに名前をつけて表示
         # print(f"[0]subtitle_line: {subtitle_line},\n [1]reading_line: {reading_line},\n [2]audio_file: {audio_file},\n [3]emotion_shortcut: {emotion_shortcut},\n [4]motion_shortcut: {motion_shortcut},\n [5]explanation_image_path: {explanation_image_path},\n [6]whiteboard_image_path: {whiteboard_image_path},\n [7]subtitle_image_path: {subtitle_image_path},\n [8]preview_images: {preview_images},\n [9]selected_model: {selected_model}")
 
-        return first_frame_data.subtitle_line, first_frame_data.reading_line, first_frame_data.audio_file, first_frame_data.emotion_shortcut, first_frame_data.motion_shortcut, None, first_frame_data.whiteboard_image_path, first_frame_data.subtitle_image_path, preview_images, first_frame_data.selected_model, self.frame_data_list
+        selected_index = 0
+        return handle_frame_event.update_ui_elements(selected_index, self.frame_data_list)
+        # return first_frame_data.subtitle_line, first_frame_data.reading_line, first_frame_data.audio_file, first_frame_data.emotion_shortcut, first_frame_data.motion_shortcut, None, first_frame_data.whiteboard_image_path, first_frame_data.subtitle_image_path, preview_images, first_frame_data.selected_model, self.frame_data_list, first_frame_data.reading_speed
 
 # 出力例
 #  [0]subtitle_line: 今回は、VTube Studioを使ってAI Tuberを作る方法ということで,

@@ -6,6 +6,7 @@
 # import requests
 import signal
 import gradio as gr
+import json
 
 # from tkinter import filedialog
 # from moviepy.editor import VideoFileClip
@@ -35,14 +36,24 @@ class UI:
         self.handle_frame_event = HandleFrameEvent(self.generate_video)  # インスタンスを渡す
 
         # 設定ファイルの読み込み
-        self.character_name, self.voice_synthesis_model, self.reading_speed, self.output_folder, self.bgm_file, self.background_video_file, self.emotion_shortcuts, self.actions, self.dics = load_settings(DEFAULT_SETTING_FILE)
+        with open(DEFAULT_SETTING_FILE, "r", encoding="utf-8") as f:
+            settings = json.load(f)
+
+        self.character_name = settings["character_name"]
+        self.voice_synthesis_model = settings["voice_synthesis_model"]
+        self.reading_speed = settings["reading_speed"]
+        self.output_folder = settings["output_folder"]
+        self.bgm_file = settings["bgm_file"]
+        self.background_video_file = settings["background_video_file"]
+        self.emotion_shortcuts = settings["emotion_shortcuts"]
+        self.actions = settings["actions"]
+        self.dics = settings["dics"]
 
         # プレビュー画像の幅と高さ
         self.preview_width, self.preview_height = 1920, 1080
         # self.hotkeys_data = None
         
         signal.signal(signal.SIGINT, self.vtuber_camera.stop) # ターミナルでの Ctrl+C で終了するための処理
-
 
 
     # Gradioアプリケーションの構築
@@ -69,65 +80,82 @@ class UI:
 
                 with gr.Column(scale=2):
                     with gr.Tab("読み上げ設定"):
-                        # キャラ
-                        character_name_input = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
-                        model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
-                        model_list_state = gr.State(model_list)  # モデル情報のタプルを保持
-                        voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.voice_synthesis_model)
-                        reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.1, label="読み上げ速度")
+                        with gr.Row():
+                            model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
+                            model_list_state = gr.State(model_list)  # モデル情報のタプルを保持
+                            with gr.Column(scale=1):
+                                # キャラ
+                                character_name_input = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
+                                voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.voice_synthesis_model)
+                                reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度", interactive=True)
+                            with gr.Column(scale=1):
+                                # キャラ
+                                sub_character_name_input = gr.Textbox(label="サブキャラクター名", interactive=True)
+                                # model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
+                                voice_synthesis_model_dropdown2 = gr.Dropdown(model_names, label="音声合成モデル", interactive=True)
+                                reading_speed_slider2 = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度", interactive=True)
 
                         # 読み方を登録するボタンを追加
                         with gr.Row():
-                            register_reading_input = gr.Textbox(label="読み方を登録", lines=12, max_lines=12, interactive=True)
-                            register_reading_button = gr.Button("読み方を登録", scale=1)
+                            with gr.Column(scale=3):
+                                register_reading_input = gr.Textbox(label="読み方を登録（カンマ、スペース、コロン、ピリオド などで区切る）", lines=12, max_lines=12, interactive=True, scale=3)
+                            register_reading_button = gr.Button("登録", scale=1)
 
-                    with gr.Tab("読み方登録"):
-                        registered_words_table = gr.Dataframe(
-                            headers=["単語/文章", "読み方"],
-                            datatype=["str", "str"],
-                            col_count=(2, "fixed"),
-                            row_count=8,
-                            value=[[word, reading] for word, reading in self.dics.items()]
-                        )
-                        # show_registered_words_button = gr.Button("登録済み単語/文章一覧表示")#→全体画面表示する。
-                        # with gr.Row():
-                            # ここにJsonファイルの場所を表示
-                            # add_word_button = gr.Button("追加") #一番上に行を追加
-                            # edit_word_button = gr.Button("編集") # 
-                            # delete_word_button = gr.Button("削除")
+                    with gr.Tab("読み方一覧"):
+                        with gr.Row():
+                            registered_words_table = gr.Dataframe(
+                                headers=["単語/文章", "読み方"],
+                                datatype=["str", "str"],
+                                col_count=(2, "fixed"),
+                                row_count=20,
+                                scale=3,
+                                type="array",  # ここを確認
+                                # value=[[word, reading] for word, reading in self.dics.items()]
+                            )
+                            update_dics_button = gr.Button("更新", scale=1)
 
-                        # 辞書
-                    with gr.Tab("ショートカット設定"):
-                        emotion_shortcuts_input = gr.Dataframe(
-                            headers=["Emotion", "Shortcut"],
-                            scale=1,
-                            col_count=(2, "fixed"),
-                            row_count=8,
-                            type="array",
-                            value=[[emotion, shortcut] for emotion, shortcut in self.emotion_shortcuts.items()],
-                            interactive=False
-                        )
-                        update_emotion_shortcuts_button = gr.Button("更新", scale=1)
-                        actions_input = gr.Dataframe(
-                            headers=["Action", "Shortcut Name", "Keys"],
-                            scale=1,
-                            col_count=(3, "fixed"),
-                            row_count=6,
-                            type="array",
-                            value=self.handle_gallery_event.flatten_actions(self.actions)
-                        )
-                        update_actions_button = gr.Button("更新", scale=1)
+                    hotkeys = await self.handle_gallery_event.load_hotkeys()
+                    hotkeys_data = [[hotkey['name'], hotkey['file']] for hotkey in hotkeys]
 
                     with gr.Tab("VTSホットキー一覧"):
+                        
                         hotkeys_data = gr.Dataframe(
                             headers=["ホットキー名", "ファイルパス"],
                             scale=1,
                             col_count=(2, "fixed"),
                             type="array",
-                            value=[],
+                            value=hotkeys_data,
                             # value=self.hotkeys_data,
                             interactive=False
                         )
+
+                    # ショートカット設定
+                    with gr.Tab("ショートカット設定"):
+
+                        with gr.Row():
+                            with gr.Column(scale=3):
+                                emotion_shortcuts_input = gr.Dataframe(
+                                    headers=["Emotion", "Shortcut"],
+                                    # scale=1,
+                                    col_count=(2, "fixed"),
+                                    # row_count=8,
+                                    type="array",
+                                    value=[[emotion, shortcut] for emotion, shortcut in self.emotion_shortcuts.items()],
+                                    # interactive=True
+                                )
+                            update_emotion_shortcuts_button = gr.Button("更新", scale=1)
+
+                        with gr.Row():
+                            with gr.Column(scale=3):
+                                actions_input = gr.Dataframe(
+                                    headers=["Action", "Shortcut"],
+                                    datatype=["str", "str"],
+                                    col_count=(2, "fixed"),
+                                    # row_count=6,
+                                    type="array",
+                                    # value=self.handle_gallery_event.flatten_actions(self.actions)
+                                )
+                            update_actions_button = gr.Button("更新", scale=1)
 
                     # タプルを表示する
                     with gr.Tab("再生用オーディオデバイス"):
@@ -154,7 +182,12 @@ class UI:
 
 
             # 動画準備
-            generate_video_button = gr.Button("感情分析・動画準備開始（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", elem_classes="font-size: 10px",scale=1)
+            with gr.Column():
+                generate_video_button = gr.Button("感情分析・動画準備開始（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", size="lg", interactive=True)
+            with gr.Column():
+                create_video_button = gr.Button("動画生成開始", size="lg", interactive=False)
+            # cancel_button = gr.Button("キャンセル", scale=1, visible=False)
+
             # 変数をコンソールに表示するボタン
             # print_variables_button = gr.Button("変数をコンソールに表示")
 
@@ -168,8 +201,10 @@ class UI:
                     with gr.Tab("テキスト・画像・動画編集"):
                         with gr.Row():
                             with gr.Column(scale=3):
-                                subtitle_input = gr.Textbox(label="セリフ（字幕用）",scale=3)
-                                reading_input = gr.Textbox(label="セリフ（読み方）",scale=3)
+                                character_name = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
+                                subtitle_input = gr.Textbox(label="セリフ（字幕用）")
+                                reading_input = gr.Textbox(label="セリフ（読み方）")
+                                update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
                             with gr.Row():
                                 update_reading_button = gr.Button("変更",scale=1)
                         with gr.Column(scale=1):
@@ -177,7 +212,7 @@ class UI:
                             with gr.Row():
                                 preview_image_output = gr.ImageEditor(label="画像プレビュー", elem_id="image_preview_output", interactive=True, visible=False, scale=3, height=400)
                                 preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True, visible=False, scale=3, height=400)
-                                delete_image_video_button = gr.Button("削除", visible=False, scale=1)
+                                # delete_image_video_button = gr.Button("削除", visible=False, scale=1)
 
                     # with gr.Tab("画像・動画編集"):
                     #     with gr.Row():
@@ -204,43 +239,17 @@ class UI:
                             vtuber_character_update_button = gr.Button("変更", scale=1)
             with gr.Row():
                 with gr.Column(scale=4):
-                    video_preview_output = gr.Video(label="生成された動画のプレビュー")
+                    video_preview_output = gr.Video(label="生成された動画のプレビュー", visible=False)
                     progress_bar = gr.Progress()
 
-                with gr.Column():
-                    create_video_button = gr.Button("動画生成開始", scale=1, elem_classes="font-size: 10px")
-                    cancel_button = gr.Button("キャンセル", scale=1, elem_classes="font-size: 10px")
+                # with gr.Column():
+                #     create_video_button = gr.Button("動画生成開始", scale=1, visible=False)
+                #     cancel_button = gr.Button("キャンセル", scale=1, visible=False)
 
             # completion_message_output = gr.Textbox(label="生成完了メッセージ", interactive=False) #visible=False
             # progress_bar = gr.Progress()
             # # rendering_progress_output = gr.Textbox(label="レンダリング進行中", interactive=False)
             # generated_video_preview_output = gr.Video(label="生成された動画のプレビュー")
-
-
-            # UIコンポーネントの設定
-            # ギャラリーの選択イベントに関数をバインド
-            preview_images.select(
-                fn=self.handle_frame_event.handle_gallery_click,    
-                inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, frame_data_list_state],
-                outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, selected_index],
-            )
-            
-            # 読み方更新ボタンのクリックイベント設定
-            update_reading_button.click(
-                fn=self.handle_frame_event.on_update_reading_click,
-                inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list_state],
-                outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input],
-            )
-
-            # Vtuberキャラクター更新ボタンのクリックイベント設定    
-            vtuber_character_update_button.click(
-                fn=self.handle_frame_event.on_update_reading_click,
-                inputs=[subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list_state],
-                outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input]
-            )
-
-
-
 
 
             # イベントハンドラの設定
@@ -250,82 +259,137 @@ class UI:
                 outputs=selected_model_tuple_state
             )
 
-            # 画像/動画削除ボタンのクリックイベント設定
-            delete_image_video_button.click(
-                fn=self.handle_gallery_event.on_delete_image_video_click,
-                inputs=[],
-                outputs=[image_video_input, preview_image_output, preview_video_output, delete_image_video_button]
+            # 読み方登録ボタンのクリックイベント
+            register_reading_button.click(
+                # self.dics　を引数で渡す
+                fn=self.handle_gallery_event.update_dics,
+                inputs=register_reading_input,
+                outputs=registered_words_table,  # 更新後のテーブルを表示
             )
+
+            # 読み方登録ボタンのクリックイベント
+            update_dics_button.click(
+                # self.dics　を引数で渡す
+                fn=self.handle_gallery_event.update_dics_from_table,
+                inputs=registered_words_table,
+                outputs=registered_words_table,  # 更新後のテーブルを表示
+            )
+
             # 画像/動画変更時にプレビューを更新
             image_video_input.change(
                 fn=self.handle_gallery_event.update_preview,
                 inputs=image_video_input,
-                outputs=[preview_image_output, preview_video_output, delete_image_video_button]
+                outputs=[preview_image_output, preview_video_output]
             )
 
-            # csv_file_input.change(self.handle_gallery_event.on_csv_file_change, csv_file_input)
-            # bgm_file_input.change(self.handle_gallery_event.on_bgm_file_change, bgm_file_input)
-            # background_video_file_input.change(self.handle_gallery_event.on_background_video_file_change, background_video_file_input)
-            # # change_output_folder_button.click(lambda: on_change_output_folder_click(output_folder_input))
-            # # change_output_folder_button.click(on_change_output_folder_click, None, output_folder_input)
-            # # show_registered_words_button.click(load_and_show_dics, outputs=[registered_words_table, dics_table])
-            # # イベントハンドラの設定
-            # print_variables_button.click(fn=self.handle_gallery_event.print_variables)
 
 
-            # # 読み方入力フィールドのサブミットイベント設定
-            # reading_input.submit(
-            #     fn=on_reading_input_submit,
-            #     inputs=[reading_input, subtitle_input, image_video_input],
-            #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
-            # )
 
-            # hidden_outputの値が変更されたときにupdate_ui_elementsを呼び出す
-            # hidden_output.change(
-            #     fn=update_frame_data_list,
-            #     inputs=[hidden_output],
-            #     outputs=[preview_images, subtitle_input, reading_input, emotion_dropdown, motion_dropdown, image_video_input]
-            # )
+            # UIコンポーネントの設定
+            # ギャラリーの選択イベントに関数をバインド
+            preview_images.select(
+                fn=self.handle_frame_event.handle_gallery_click,    
+                inputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                show_progress=True,
+            )
+            
+            # 読み方更新ボタンのクリックイベント設定
+            update_reading_button.click(
+                fn=self.handle_frame_event.on_update_reading_click,
+                inputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                show_progress=True,
+            )
 
-            # update_emotion_shortcuts_button.click(
-            #     fn=update_emotion_shortcut,
-            #     inputs=[emotion_shortcuts_input],
-            #     outputs=[emotion_shortcuts_state]
-            # )
-
-            # update_actions_button.click(
-            #     fn=update_action_shortcut,
-            #     inputs=[actions_input],
-            #     outputs=[actions_state]
-            # )
-
-
-            # save_settings_button.click(
-            #     fn=save_settings,
-            #     inputs=[emotion_shortcuts_state, actions_state, json_file_output],
-            #     outputs=[]
-            # )
-
+            # Vtuberキャラクター更新ボタンのクリックイベント設定    
+            vtuber_character_update_button.click(
+                fn=self.handle_frame_event.on_update_reading_click,
+                inputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state, video_preview_output
+                    ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                show_progress=True,
+            )
 
             # 動画準備開始ボタンのクリックイベント設定
             generate_video_button.click(
-                fn=self.handle_frame_event.reset_frame_data_list,
-                inputs=[],
-                outputs=[frame_data_list_state]
-            ).then(
                 fn=self.generate_video.generate_video,
-                inputs=[csv_file_input, bgm_file_input, background_video_file_input, character_name_input, model_list_state, selected_model_tuple_state, reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state],
-                outputs=[subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, subtitle_image_path, preview_images, selected_model_tuple_state, frame_data_list_state],
-                show_progress=True
+                inputs=[
+                    csv_file_input, bgm_file_input, background_video_file_input, 
+                    character_name_input, model_list_state, selected_model_tuple_state, 
+                    reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state
+                    ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                show_progress=True,
+            ).then(
+                fn=self.handle_frame_event.setup_frame_data_list,
+                inputs=[],
+                outputs=[generate_video_button, create_video_button]
             )
+
+            # frame_data_list_state.change(
+            #     fn=self.handle_frame_event.update_ui_elements,
+            #     inputs=[selected_index, frame_data_list_state],
+            #     outputs=[character_name, subtitle_input, reading_input, reading_speed_slider, selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, preview_images, selected_index],
+            #     show_progress=True,
+            # )
+
 
             # 動画生成開始ボタンのクリックイベント設定
             create_video_button.click(
                 fn=self.handle_frame_event.create_video,
-                inputs=[output_folder_input, bgm_file_input, subtitle_input, reading_input, image_video_input, selected_index, selected_model_tuple_state, whiteboard_image_path, frame_data_list_state],
-                outputs=[preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, video_preview_output]
+                inputs=[
+                    output_folder_input, bgm_file_input, background_video_file_input, 
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state, video_preview_output
+                    ],
+                show_progress=True,
             )
-            demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)
+
+            demo.load(fn=self.handle_gallery_event.load_dics, inputs=[], outputs=registered_words_table)
+            # demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)
             demo.load(fn=self.handle_gallery_event.load_audio_devices, inputs=[], outputs=audio_devices)
         demo.launch()
 
