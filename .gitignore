@@ -4,12 +4,6 @@ background_video/
 bgm/
 test/
 tmp/
-start.bat
-start.py
-settings.yml
 vts_settings.yml
-vts_hotkey_trigger.py
 outputs/
-setup_ai_tuber_tools.bat
-setup_ai_tuber_tools.py
 settings.yml

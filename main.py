@@ -62,3 +62,11 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    # try:
+    # except Exception as e:
+    #     print(f"Exception: {e}")
+    # finally:
+    #     # イベントループのクリーンアップ
+    #     loop = asyncio.get_event_loop()
+    #     loop.run_until_complete(loop.shutdown_asyncgens())
+    #     loop.close()

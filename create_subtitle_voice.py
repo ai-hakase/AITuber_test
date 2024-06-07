@@ -65,7 +65,7 @@ class CreateSubtitleVoice:
 
 
     # 音声ファイルを生成する関数
-    def generate_audio(self, subtitle_line, reading_line, model_name, model_id, speaker_id):
+    def generate_audio(self, subtitle_line, reading_line, model_name, model_id, speaker_id, reading_speed_slider):
         # リクエストヘッダー
         headers = {
             "accept": "audio/wav"
@@ -90,7 +90,7 @@ class CreateSubtitleVoice:
             'sdp_ratio': 0.2,  # SDP（Stochastic Duration Predictor）とDP（Duration Predictor）の混合比率
             'noise': 0.6,  # サンプルノイズの割合（ランダム性を増加させる）
             'noisew': 0.8,  # SDPノイズの割合（発音の間隔のばらつきを増加させる）
-            'length': 0.9,  # 話速（1が標準）
+            'length': reading_speed_slider,  # 話速（1が標準）
             'language': 'JP',  # テキストの言語
             'auto_split': 'true',  # 自動でテキストを分割するかどうか
             'split_interval': 1,  # 分割した際の無音区間の長さ（秒）

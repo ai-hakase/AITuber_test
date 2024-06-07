@@ -3,6 +3,8 @@ import csv
 import pprint
 import shutil
 import sounddevice as sd
+import json
+import re
 
 from tkinter import filedialog
 from ui import *
@@ -18,7 +20,7 @@ class HandleGalleryEvent:
     # アップロードされたファイルの種類に応じてプレビューを更新する関数
     def update_preview(self, file):
         if file is None:
-            return gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+            return gr.update(visible=False), gr.update(visible=False)
         
         if isinstance(file, dict):
             file_type = file["type"]
@@ -29,10 +31,10 @@ class HandleGalleryEvent:
             file_name = file
 
         if file_type.startswith("image"):
-            return gr.update(value=file_name, visible=True), gr.update(visible=False), gr.update(visible=True)
+            return gr.update(value=file_name, visible=True), gr.update(visible=False)
         elif file_type.startswith("video"):
-            return gr.update(visible=False), gr.update(value=file_name, visible=True), gr.update(visible=True)
-        return gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+            return gr.update(visible=False), gr.update(value=file_name, visible=True)
+        return gr.update(visible=False), gr.update(visible=False)
 
 
 
@@ -110,7 +112,8 @@ class HandleGalleryEvent:
         await self.vts_hotkey_trigger.connect()
         hotkeys = await self.vts_hotkey_trigger.get_hotkeys()
         await self.vts_hotkey_trigger.disconnect()
-        return [[hotkey['name'], hotkey['file']] for hotkey in hotkeys]
+        return hotkeys
+        # return [[hotkey['name'], hotkey['file']] for hotkey in hotkeys]
 
 
     # オーディオデバイスを読み込む
@@ -148,6 +151,94 @@ class HandleGalleryEvent:
                 cable_devices.append((device_number, device_name))
 
         return [[device_number, device_name] for device_number, device_name in cable_devices]
+
+
+    def update_dics(self, text):
+        """読み方登録辞書を更新するメソッド
+
+        Args:
+            text (str): テキストボックスに入力されたテキスト (単語/文章,読み方 のカンマ区切り形式)
+        """
+
+        # 設定ファイルを読み込む
+        with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+
+        # 読み方登録辞書を取得
+        dics = settings["dics"]
+
+        # 複数の区切り文字に対応するための正規表現パターン
+        pattern = re.compile(r'[,\s、：:]+')
+
+        # テキストを行ごとに分割
+        lines = text.splitlines()
+
+        for line in lines:
+            items = [item.strip() for item in pattern.split(line) if item.strip()]
+
+            if len(items) % 2 != 0:
+                raise ValueError("不正な入力形式です。単語/文章と読み方をカンマ区切りで入力してください。")
+
+            # 辞書を更新
+            for i in range(0, len(items), 2):
+                word, reading = items[i], items[i + 1]
+                if not word in dics:
+                    dics[word] = reading
+                    print(f"新しく追加した文字: {[word, reading]}")
+
+        # 読み方登録辞書を更新
+        settings["dics"] = dics
+
+        # JSON文字列に変換
+        json_str = json.dumps(settings, indent=4, ensure_ascii=False)
+        # print(f"json_str: {json_str}")
+
+        # 設定ファイルを保存
+        with open(DEFAULT_SETTING_FILE, 'w', encoding='utf-8') as f:
+            f.write(json_str)
+    
+        return [[word, reading] for word, reading in dics.items()]
+
+
+    def update_dics_from_table(self, table_data):
+        """Dataframe の値から辞書を更新するメソッド
+
+        Args:
+            table_data (list): Dataframe の値 (リストのリスト)
+        """
+        # 設定ファイルを読み込む
+        with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+
+        # 読み方登録辞書を取得
+        old_dics = settings["dics"]
+
+        # DataFrame を辞書に変換
+        dics = {row['単語/文章']: row['読み方'] for _, row in table_data.iterrows() if row['単語/文章'] and row['読み方']}
+        # print(f"dics: {dics}")
+        # print(f"table_data: {table_data}")
+        
+        # 読み方登録辞書を更新 -> old_dicsとdicsの差分を更新
+        # settings["dics"] = {**dics, **old_dics}
+        settings["dics"] = dics
+
+        # JSON文字列に変換し、インデントと日本語を保持
+        json_str = json.dumps(settings, indent=4, ensure_ascii=False)
+        # print(f"settings['dics'].items(): {settings['dics'].items()}")
+
+        # 設定ファイルを保存
+        with open(DEFAULT_SETTING_FILE, 'w', encoding='utf-8') as f:
+            f.write(json_str)
+
+        # 更新後の辞書を Dataframe 形式で返す
+        return [[word, reading] for word, reading in settings["dics"].items()]
+
+
+    # 読み方を更新する
+    def load_dics(self):
+        with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+        return [[word, reading] for word, reading in settings["dics"].items()]
 
 
 #     # csvファイルの変更時の処理
