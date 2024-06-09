@@ -112,9 +112,8 @@ class HandleGalleryEvent:
         await self.vts_hotkey_trigger.connect()
         hotkeys = await self.vts_hotkey_trigger.get_hotkeys()
         await self.vts_hotkey_trigger.disconnect()
-        return hotkeys
-        # return [[hotkey['name'], hotkey['file']] for hotkey in hotkeys]
-
+        # return hotkeys
+        return  [[hotkey['name'], hotkey['file'], hotkey['hotkeyID']] for hotkey in hotkeys]
 
     # オーディオデバイスを読み込む
     async def load_audio_devices(self):
@@ -239,6 +238,19 @@ class HandleGalleryEvent:
         with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
             settings = json.load(f)
         return [[word, reading] for word, reading in settings["dics"].items()]
+
+
+    # 感情ショートカットを更新する
+    def load_emotion_shortcuts(self):
+        with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+        return [[emotion, shortcuts] for emotion, shortcuts in settings["emotion_shortcuts"].items()]
+
+    # アクションショートカットを更新する
+    def load_actions(self):
+        with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+        return [[action, shortcuts] for action, shortcuts in settings["actions"].items()]
 
 
 #     # csvファイルの変更時の処理

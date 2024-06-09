@@ -19,6 +19,8 @@ with open(settings, "r", encoding="utf-8") as f:
     OBS_SHORTCUT_PATH = settings["OBS_SHORTCUT_PATH"]
     VTUBE_STUDIO_SHORTCUT_PATH = settings["VTUBE_STUDIO_SHORTCUT_PATH"]
 
+hotkey_alt_4 = 'alt', '4'
+
 
 class StyleBertVITS2API:
     def __init__(self):
@@ -73,7 +75,7 @@ def start_process(process_path):
 def send_hotkey():
     # await time.sleep(20)
     time.sleep(15)
-    pyautogui.hotkey('alt', 'h', interval=0.05)
+    pyautogui.hotkey('alt', '4', interval=0.05)
 
 
 # async def main():

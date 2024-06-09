@@ -1,32 +1,33 @@
 {
-    "character_name": "葉加瀬あい", 
-    "voice_synthesis_model": "model1",
-    "reading_speed": 1.0,
+    "character_name": "葉加瀬あい",
+
+    "voice_synthesis_model": "AI-Hakase-v1",
+
+    "reading_speed": 0.92,
+
     "output_folder": "outputs",
+
     "bgm_file": "bgm\\default_bgm.wav",
+    
     "background_video_file": "background_video\\default_video.mp4",
+
     "emotion_shortcuts": {
-        "joy、うれしい": ["alt", "j"],
-        "sadness、悲しい": ["alt", "s"],
-        "anticipation、期待": ["alt", "n"],
-        "surprise、驚き": ["alt", "z"],
-        "anger、怒り": ["alt", "a"],
-        "fear、恐れ": ["alt", "f"],
-        "disgust、嫌悪": ["alt", "d"],
-        "trust、信頼": ["alt", "t"]
+        "joy、うれしい": ["angry"],
+        "sadness、悲しい": ["sad"],
+        "anticipation、期待": ["kirakira eyes"],
+        "surprise、驚き": ["surprise"],
+        "anger、怒り": ["angry","cheekpuff"],
+        "fear、恐れ": ["blue"],
+        "disgust、嫌悪": ["guruguru eyes"],
+        "trust、信頼": [""]
     },
+
     "actions": {
-        "話し方": [
-            ["ループスピーチ1", ["alt", "1"]],
-            ["ループスピーチ2", ["alt", "2"]],
-            ["ループスピーチ3", ["alt", "3"]],
-            ["ループ待機1", ["alt", "n"]]
-        ],
-        "待機": [
-            ["ループ待機1", ["alt", "0"]],
-            ["ループ待機2", ["alt", "0"]]
-        ]
+        "バイバイ": ["wave hands","wave one hand"],
+        "話し方": ["Motion_1","Motion_2","Motion_3","Motion_default"],
+        "待機": ["Motion_default"]
     },
+
     "dics": {
         "Youtube": "ユーチューブ",
         "Tiktok": "ティックトック",
@@ -34,6 +35,7 @@
         "OBS": "オービーエス",
         "VTube Studio": "ブイチューブ スタジオ",
         "VTuber": "ブイチューバー",
-        "葉加瀬": "はかせ"
+        "葉加瀬": "はかせ",
+        "Tuber": "チューバー"
     }
-  }
+}

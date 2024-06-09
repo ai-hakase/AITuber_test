@@ -108,23 +108,23 @@ class UI:
                                 datatype=["str", "str"],
                                 col_count=(2, "fixed"),
                                 row_count=20,
-                                scale=3,
+                                scale=4,
                                 type="array",  # ここを確認
                                 # value=[[word, reading] for word, reading in self.dics.items()]
                             )
                             update_dics_button = gr.Button("更新", scale=1)
 
-                    hotkeys = await self.handle_gallery_event.load_hotkeys()
-                    hotkeys_data = [[hotkey['name'], hotkey['file']] for hotkey in hotkeys]
+                    # hotkeys = await self.handle_gallery_event.load_hotkeys()
+                    # hotkeys_data = [[hotkey['name'], hotkey['file'], hotkey['hotkeyID']] for hotkey in hotkeys]
 
                     with gr.Tab("VTSホットキー一覧"):
                         
                         hotkeys_data = gr.Dataframe(
-                            headers=["ホットキー名", "ファイルパス"],
+                            headers=["ホットキー名", "ファイルパス","hotkeyID"],
                             scale=1,
-                            col_count=(2, "fixed"),
+                            col_count=(3, "fixed"),
                             type="array",
-                            value=hotkeys_data,
+                            # value= [[hotkey['name'], hotkey['file'], hotkey['hotkeyID']] for hotkey in hotkeys],
                             # value=self.hotkeys_data,
                             interactive=False
                         )
@@ -133,29 +133,24 @@ class UI:
                     with gr.Tab("ショートカット設定"):
 
                         with gr.Row():
-                            with gr.Column(scale=3):
+                            with gr.Column(scale=4):
                                 emotion_shortcuts_input = gr.Dataframe(
                                     headers=["Emotion", "Shortcut"],
-                                    # scale=1,
                                     col_count=(2, "fixed"),
-                                    # row_count=8,
+                                    row_count=8,
                                     type="array",
-                                    value=[[emotion, shortcut] for emotion, shortcut in self.emotion_shortcuts.items()],
-                                    # interactive=True
+                                    # value=[[emotion, shortcut] for emotion, shortcut in self.emotion_shortcuts.items()],
+                                    interactive=True
                                 )
-                            update_emotion_shortcuts_button = gr.Button("更新", scale=1)
-
-                        with gr.Row():
-                            with gr.Column(scale=3):
                                 actions_input = gr.Dataframe(
                                     headers=["Action", "Shortcut"],
                                     datatype=["str", "str"],
                                     col_count=(2, "fixed"),
-                                    # row_count=6,
+                                    row_count=6,
                                     type="array",
-                                    # value=self.handle_gallery_event.flatten_actions(self.actions)
+                                    interactive=True
                                 )
-                            update_actions_button = gr.Button("更新", scale=1)
+                            update_shortcuts_button = gr.Button("更新", scale=1)
 
                     # タプルを表示する
                     with gr.Tab("再生用オーディオデバイス"):
@@ -202,8 +197,8 @@ class UI:
                         with gr.Row():
                             with gr.Column(scale=3):
                                 character_name = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
-                                subtitle_input = gr.Textbox(label="セリフ（字幕用）")
-                                reading_input = gr.Textbox(label="セリフ（読み方）")
+                                subtitle_input = gr.Textbox(label="セリフ（字幕用）", lines=2)
+                                reading_input = gr.Textbox(label="セリフ（読み方）", lines=2)
                                 update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
                             with gr.Row():
                                 update_reading_button = gr.Button("変更",scale=1)
@@ -329,7 +324,7 @@ class UI:
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
-                    selected_index, frame_data_list_state, video_preview_output
+                    selected_index, frame_data_list_state
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
@@ -388,8 +383,10 @@ class UI:
                 show_progress=True,
             )
 
+            demo.load(fn=self.handle_gallery_event.load_emotion_shortcuts, inputs=[], outputs=emotion_shortcuts_input)
+            demo.load(fn=self.handle_gallery_event.load_actions, inputs=[], outputs=actions_input)
             demo.load(fn=self.handle_gallery_event.load_dics, inputs=[], outputs=registered_words_table)
-            # demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)
+            demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)
             demo.load(fn=self.handle_gallery_event.load_audio_devices, inputs=[], outputs=audio_devices)
         demo.launch()
 

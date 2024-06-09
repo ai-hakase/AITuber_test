@@ -57,7 +57,11 @@ async def main():
 
     # 実行
     # asyncio.run(ui.create_ui())
-    await ui.create_ui()
+    try:
+        await ui.create_ui()
+    except ConnectionResetError as e:
+        # 無視して処理を続ける
+        pass
 
 
 if __name__ == "__main__":
