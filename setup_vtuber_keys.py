@@ -2,7 +2,7 @@ import torch
 import random
 
 from transformers import AutoTokenizer, LukeConfig, AutoModelForSequenceClassification
-from constants import TALKING, WAITING, EMOTIONS
+from constants import TALKING, WAITING, BAYBAY, EMOTIONS
 
 class SetupVtuberKeys:
 
@@ -51,12 +51,18 @@ class SetupVtuberKeys:
             emotion_shortcut = emotion_shortcuts.get(emotion)
             # motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
             # self.last_motion_shortcut[self.main_character] = motion_shortcut
-            motion_shortcut = [key for _, key in actions[TALKING]]
+
+            # if line in "バイバイ" or "またね" or "ばいばい" or "さようなら" or "バイバーイ" or "さよなら":
+            #     motion_shortcut = actions[BAYBAY]
+            # else:
+                # motion_shortcut = actions[TALKING]
+                
+            motion_shortcut = actions[TALKING]
             # motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
             # self.last_motion_shortcut[self.main_character] = motion_shortcut
         else:
             emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
-            motion_shortcut = [key for _, key in actions[WAITING]]
+            motion_shortcut = actions[WAITING]
             # motion_shortcut = self.press_random_key(actions[WAITING], self.last_motion_shortcut["other"])
             # self.last_motion_shortcut["other"] = motion_shortcut
         return emotion_shortcut, motion_shortcut

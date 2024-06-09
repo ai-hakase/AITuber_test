@@ -191,8 +191,58 @@ class VTubeStudioHotkeyTrigger:
                 "hotkeyID": hotkey_id
             }
         }
-        await self.websocket.send(json.dumps(request))
-        response = await self.websocket.recv()
+
+        try:
+            await self.websocket.send(json.dumps(request))
+            response = await self.websocket.recv()
+        except websockets.exceptions.ConnectionClosedError as e:
+            print("WebSocket connection closed. Attempting to reconnect...")
+            await self.connect()  # 再接続を試みる
+            await self.trigger_hotkey(hotkey_id)
         # print(f"Triggered Hotkey Response: {response}")
 
+    
+    async def take_screenshot(self, save_to_gallery=False, save_to_custom_path=False, custom_file_path="", transparent=False, crop_to_model=False, photo_width=1920, photo_height=1080, photo_format="png"):
+        """VTube Studio のスクリーンショットを撮る関数
 
+        Args:
+            save_to_gallery (bool, optional): ギャラリーに保存するかどうか. Defaults to True.
+            save_to_custom_path (bool, optional): カスタムパスに保存するかどうか. Defaults to False.
+            custom_file_path (str, optional): カスタムファイルパス. Defaults to "".
+            transparent (bool, optional): 透過背景にするかどうか. Defaults to False.
+            crop_to_model (bool, optional): モデルの領域にクロップするかどうか. Defaults to False.
+            photo_width (int, optional): 画像の幅. Defaults to 1920.
+            photo_height (int, optional): 画像の高さ. Defaults to 1080.
+            photo_format (str, optional): 画像の形式 ("png" or "jpg"). Defaults to "png".
+        """
+
+        if not self.is_authenticated:
+            print("VTube Studio に認証されていません。")
+            return
+
+        request = {
+            "apiName": "VTubeStudioPublicAPI",
+            "apiVersion": "1.0",
+            "requestID": "TakeScreenshotRequest",
+            "messageType": "TakeScreenshotRequest",
+            "data": {
+                "saveToGallery": save_to_gallery,
+                "saveToCustomPath": save_to_custom_path,
+                "customFilePath": custom_file_path,
+                "transparent": transparent,
+                "cropToModel": crop_to_model,
+                "photoWidth": photo_width,
+                "photoHeight": photo_height,
+                "photoFormat": photo_format
+            }
+        }
+
+        await self.websocket.send(json.dumps(request))
+
+        response = await self.websocket.recv()
+        print(f"Received: {response}\n")
+        response_data = json.loads(response)
+        if "data" in response_data and "filePath" in response_data["data"]:
+            print(f"Screenshot saved to: {response_data['data']['filePath']}")
+        else:
+            print("Failed to take screenshot or retrieve the file path")

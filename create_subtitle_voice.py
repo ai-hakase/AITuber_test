@@ -90,14 +90,16 @@ class CreateSubtitleVoice:
             'sdp_ratio': 0.2,  # SDP（Stochastic Duration Predictor）とDP（Duration Predictor）の混合比率
             'noise': 0.6,  # サンプルノイズの割合（ランダム性を増加させる）
             'noisew': 0.8,  # SDPノイズの割合（発音の間隔のばらつきを増加させる）
-            'length': reading_speed_slider,  # 話速（1が標準）
+            'length': 1,  # 話速（1が標準）
+            # 'length': reading_speed_slider,  # 話速（1が標準）
             'language': 'JP',  # テキストの言語
             'auto_split': 'true',  # 自動でテキストを分割するかどうか
-            'split_interval': 1,  # 分割した際の無音区間の長さ（秒）
+            'split_interval': 0.3,  # 分割した際の無音区間の長さ（秒）
             'assist_text': assist_text,  # 補助テキスト（読み上げと似た声音・感情になりやすい）
             'assist_text_weight': 1.0,  # 補助テキストの影響の強さ
-            'style': 'Neutral',  # 音声のスタイル
-            'style_weight': 5.0,  # スタイルの強さ
+            # 'style': 'Neutral',  # 音声のスタイル
+            'style': 'NeutralamazinGood(onmygod)',  # 音声のスタイル
+            'style_weight': 2.5,  # スタイルの強さ
             # 'reference_audio_path': r"test\AI-Hakase_Voice-26S.MP3",  # 参照オーディオパス（スタイルを音声ファイルで指定）
         }
 

@@ -160,8 +160,22 @@ class EditMedia:
 
         subtitle_img = self.resize_image_aspect_ratio(img, preview_width, preview_height)#リサイズ
 
-        return subtitle_img
 
+        # グリーンバック画像を生成
+        subtitle_with_green_background = Image.new('RGB', (preview_width, preview_height), (0, 255, 0))
+
+        # 字幕画像のサイズを取得
+        subtitle_width, subtitle_height = subtitle_img.size
+
+        # 字幕画像を下部中央に配置するための座標を計算
+        x = (subtitle_with_green_background.width - subtitle_width) // 2  # 横方向の中央
+        y = subtitle_with_green_background.height - subtitle_height       # 下部に配置
+
+        # グリーンバック画像に字幕画像を貼り付け
+        subtitle_with_green_background.paste(subtitle_img, (x, y), mask=subtitle_img)
+
+        return subtitle_with_green_background
+    
 
     def create_preview_area(self):
         # プレビューエリアを作成
@@ -172,19 +186,26 @@ class EditMedia:
 
 
     # PILを使用してホワイトボード画像を生成
-    def create_whiteboard(self, preview_width, preview_height, vtuber_img_width, subtitle_img_height):
+    def create_whiteboard(self, preview_width, preview_height, subtitle_img):
+        
         # ホワイトボードのサイズを計算
         left_margin = 30
-        right_margin = 30 + vtuber_img_width
+        right_margin = 30
         top_margin = 30
-        bottom_margin = 30 + subtitle_img_height
+        bottom_margin = 30
 
-        whiteboard_width = preview_width - left_margin - right_margin
-        whiteboard_height = preview_height - top_margin - bottom_margin
+        # ホワイトボードのサイズを計算
+        whiteboard_width = preview_width // 4 * 3 -50#調整
+        whiteboard_height = preview_height - subtitle_img.height // 2 -30#調整
 
+        # ホワイトボードのサイズを計算
+        whiteboard_width = whiteboard_width - left_margin - right_margin
+        whiteboard_height = whiteboard_height - top_margin - bottom_margin
+
+        print(f"width,height: {whiteboard_width},{whiteboard_height}")
         # ホワイトボード画像を作成
-        img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 0))
-        # img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 80))
+        # img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 0))
+        img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 150))
 
         #一時ファイルに保存してパスを返す
         return img
@@ -198,18 +219,18 @@ class EditMedia:
         # クロマキー処理
         vtuber_img = process_transparentize_green_back(vtuber_img)
 
-        # イメージの横幅を取得してそれの1/4を左と右のそれぞれから切り取る
-        vtuber_width, vtuber_height = vtuber_img.size
-        # left = (vtuber_width - 600) // 2
-        # right = left + 600
-        left = vtuber_width // 4 -30#調整
-        right = vtuber_width - left
-        top = 0
-        bottom = vtuber_height
-        vtuber_img = vtuber_img.crop((left, top, right, bottom))
+        # # イメージの横幅を取得してそれの1/4を左と右のそれぞれから切り取る
+        # vtuber_width, vtuber_height = vtuber_img.size
+        # # left = (vtuber_width - 600) // 2
+        # # right = left + 600
+        # left = vtuber_width // 4 -30#調整
+        # right = vtuber_width - left
+        # top = 0
+        # bottom = vtuber_height
+        # vtuber_img = vtuber_img.crop((left, top, right, bottom))
 
-        # リサイズ
-        vtuber_img = self.resize_image_aspect_ratio(vtuber_img, None, 720).convert("RGBA")  # RGBAモードに変換
+        # # リサイズ
+        # vtuber_img = self.resize_image_aspect_ratio(vtuber_img, None, 720).convert("RGBA")  # RGBAモードに変換
 
         return vtuber_img
 

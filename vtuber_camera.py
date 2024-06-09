@@ -2,6 +2,8 @@ import cv2
 import pyvirtualcam
 import sys
 import numpy as np
+from constants import VERTUBE_CAMERA_NUM
+# from colorspaces import colorspace
 
 from PIL import Image
 
@@ -9,9 +11,16 @@ from PIL import Image
 class VTuberCamera:
 
     def __init__(self):
-        self.cap = cv2.VideoCapture(1)  # 数字は環境によって異なります
+        cap = cv2.VideoCapture(VERTUBE_CAMERA_NUM)  # 数字は環境によって異なります
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        # cap.set(cv2.CAP_PROP_FPS, 24)
+        # cap.set(cv2.CAP_PROP_CONVERT_RGB, cv2.VideoWriter_fourcc(*'H264'))
+
+        self.cap = cap
         # self.width = 1920
         # self.height = 1080
+        
         self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
