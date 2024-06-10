@@ -215,7 +215,7 @@ class HandleFrameEvent:
         # print(f"output_file_path: {output_file_path}")
 
         create_video = CreateVideo(frame_data_list_state, output_file_path, background_video_file_input)
-        await create_video.create_video_run()
+        output_file_path = await create_video.create_video_run()
 
         # 別スレッドで実行
         # task = asyncio.create_task(create_video.create_video_run())
