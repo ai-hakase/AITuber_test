@@ -194,6 +194,8 @@ class EditMedia:
         top_margin = 30
         bottom_margin = 30
 
+        subtitle_img = Image.open(r"Asset\tb00018_03_pink.png")
+
         # ホワイトボードのサイズを計算
         whiteboard_width = preview_width // 4 * 3 -50#調整
         whiteboard_height = preview_height - subtitle_img.height // 2 -30#調整
@@ -202,7 +204,7 @@ class EditMedia:
         whiteboard_width = whiteboard_width - left_margin - right_margin
         whiteboard_height = whiteboard_height - top_margin - bottom_margin
 
-        print(f"width,height: {whiteboard_width},{whiteboard_height}")
+        # print(f"width,height: {whiteboard_width},{whiteboard_height}")
         # ホワイトボード画像を作成
         # img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 0))
         img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 150))

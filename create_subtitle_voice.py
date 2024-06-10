@@ -94,7 +94,7 @@ class CreateSubtitleVoice:
             # 'length': reading_speed_slider,  # 話速（1が標準）
             'language': 'JP',  # テキストの言語
             'auto_split': 'true',  # 自動でテキストを分割するかどうか
-            'split_interval': 0.3,  # 分割した際の無音区間の長さ（秒）
+            'split_interval': 0.01,  # 分割した際の無音区間の長さ（秒）
             'assist_text': assist_text,  # 補助テキスト（読み上げと似た声音・感情になりやすい）
             'assist_text_weight': 1.0,  # 補助テキストの影響の強さ
             # 'style': 'Neutral',  # 音声のスタイル

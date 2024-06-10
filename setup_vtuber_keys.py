@@ -16,6 +16,10 @@ class SetupVtuberKeys:
         self.model = AutoModelForSequenceClassification.from_pretrained('Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime', config=config)
         self.model.to(self.DEVICE)
 
+        self.previous_motion_shortcut = None
+        self.sub_previous_motion_shortcut = None
+
+
 
     # 感情分析を行う関数
     def analyze_sentiment(self, text):
@@ -45,10 +49,30 @@ class SetupVtuberKeys:
         """
         ショートカットキーをランダムにキーを選択する関数
         """
+
         if character == "葉加瀬あい":
         # if character == self.main_character:
             emotion = self.analyze_sentiment(line)
-            emotion_shortcut = emotion_shortcuts.get(emotion)
+            emotion_shortcut = emotion_shortcuts.get(emotion)#EX ->  "anger、怒り": ["angry","cheekpuff"],
+
+            # 感情ラベルに対応するショートカットキーをランダムに選択
+            selected_emotion_shortcut = random.choice(emotion_shortcut)
+
+            # # 前回の感情と同じならNoneを追加
+            # if selected_emotion_shortcut != previous_emotion_shortcut:
+            #     previous_emotion_shortcut = selected_emotion_shortcut
+            # else:
+            #     selected_emotion_shortcut = None
+
+
+            motion_shortcut = actions[TALKING]# ["Motion_1","Motion_2","Motion_3","Motion_default"],
+
+            selected_motion_shortcut = random.choice(motion_shortcut)
+            if selected_motion_shortcut != self.previous_motion_shortcut:
+                self.previous_motion_shortcut = selected_motion_shortcut
+            else:
+                selected_motion_shortcut = None  # 前回と同じならNoneを追加
+
             # motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
             # self.last_motion_shortcut[self.main_character] = motion_shortcut
 
@@ -57,12 +81,20 @@ class SetupVtuberKeys:
             # else:
                 # motion_shortcut = actions[TALKING]
                 
-            motion_shortcut = actions[TALKING]
             # motion_shortcut = self.press_random_key(actions[TALKING], self.last_motion_shortcut[self.main_character])
             # self.last_motion_shortcut[self.main_character] = motion_shortcut
+
         else:
-            emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
-            motion_shortcut = actions[WAITING]
+            selected_emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
+            selected_motion_shortcut = actions[WAITING]
             # motion_shortcut = self.press_random_key(actions[WAITING], self.last_motion_shortcut["other"])
             # self.last_motion_shortcut["other"] = motion_shortcut
-        return emotion_shortcut, motion_shortcut
+
+            selected_motion_shortcut = random.choice(motion_shortcut)
+            if selected_motion_shortcut != self.sub_previous_motion_shortcut:
+                self.sub_previous_motion_shortcut = selected_motion_shortcut
+            else:
+                selected_motion_shortcut = None  # 前回と同じならNoneを追加
+
+
+        return selected_emotion_shortcut, selected_motion_shortcut
