@@ -50,12 +50,23 @@ class GenerateVideo:
         self.scene_name = "AI_Tuber_test"
 
     # プレビュー画像を生成する関数
-    def generate_preview_image(self, background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_character_path):
+    def generate_preview_image(self, background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_character_path, background_image_path=None):
 
-        # 背景動画の最初のフレームを読み込む
-        background = capture_first_frame(background_video_file_input)
-        # プレビューエリアのサイズに合わせてリサイズ
-        background = self.edit_medias.resize_image_aspect_ratio(background, self.preview_width, self.preview_height+1)#調整
+        if background_image_path:
+            # 背景動画の最初のフレームを読み込む
+            background_image = capture_first_frame(background_video_file_input)
+            # プレビューエリアのサイズに合わせてリサイズ
+            background_image = self.edit_medias.resize_image_aspect_ratio(background_image, self.preview_width, self.preview_height+1)#調整
+        else:
+            # 背景動画の最初のフレームを読み込む
+            background_image = Image.open(background_image_path)
+
+
+        # # 背景動画の最初のフレームを読み込む
+        # background_image = capture_first_frame(background_video_file_input)
+        # # プレビューエリアのサイズに合わせてリサイズ
+        # background_image = self.edit_medias.resize_image_aspect_ratio(background_image, self.preview_width, self.preview_height+1)#調整
+
 
         # 字幕画像を読み込む
         subtitle_img = Image.open(subtitle_image_path).convert("RGBA")
@@ -63,12 +74,14 @@ class GenerateVideo:
 
         # Vキャラ画像を読み込む
         vtuber_img = Image.open(vtuber_character_path).convert("RGBA")  # RGBAモードに変換
+        # vtuber_img = process_transparentize_green_back(vtuber_img) # グリーンスクリーンを透明にする
 
         # ホワイトボード画像を読み込む
         whiteboard_img = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
 
         # 解説画像を読み込む
         explanation_img = load_image_or_video(explanation_image_path)
+        # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
 
 
         # # 背景画像を合成
@@ -89,16 +102,19 @@ class GenerateVideo:
         # explanation_img = process_transparentize_green_back(explanation_img)
         # self.preview.paste(explanation_img, (30, 30), mask=explanation_img)
 
+        # 背景画像を合成
+        # self.preview.paste(background, (0, 0))
+        self.preview.paste(background_image, (0, 0))
 
-        # Vキャラ画像を合成
+        # 解説画像を合成
+        self.preview.paste(explanation_img, (30, 30), mask=explanation_img)
+
+        # Vキャラ画像を合成->obsのスクリーンショット
         # リサイズ後の位置を計算
         # vtuber_x = self.preview_width - vtuber_img.width +10#調整
         # vtuber_y = self.preview_height - vtuber_img.height -200#調整
         # self.preview.paste(vtuber_img, (vtuber_x, vtuber_y), mask=vtuber_img)
-        self.preview.paste(vtuber_img, (15, 0), mask=vtuber_img)
-
-        # 解説画像を合成
-        self.preview.paste(explanation_img, (30, 30), mask=explanation_img)
+        self.preview.paste(vtuber_img, (0, 0), mask=vtuber_img)
 
         # 字幕を合成
         # subtitle_x = (self.preview_width - subtitle_img.width) // 2
@@ -106,7 +122,7 @@ class GenerateVideo:
         # print(f"subtitle_x: {subtitle_x}, subtitle_y: {subtitle_y}")
         # self.preview.paste(subtitle_img, (subtitle_x, subtitle_y), mask=subtitle_img)
         
-        # subtitle_imgをクロマキー処理
+        # subtitle_imgをクロマキー処理 -> 字幕を合成
         self.preview.paste(subtitle_img, (0, 0), mask=subtitle_img)
 
         # プレビュー画像を保存
@@ -161,12 +177,17 @@ class GenerateVideo:
             emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
             # emotion_shortcut, motion_shortcut = 'alt+n', 'alt+0'
 
-            # 字幕画像の生成
+            # 背景画像の作成
+            background_image = await self.edit_medias.create_obs_screenshot_image("background")
+            background_image_path = save_as_temp_file(background_image)
+
+
+            # 字幕画像の生成->グリーンバック＋字幕画像
             subtitle_img = self.edit_medias.generate_subtitle(subtitle_line, self.preview_width, self.preview_height)#字幕画像の生成
             subtitle_image_path = save_as_temp_file(subtitle_img)#テンポラリファイルに保存
 
-            # Vキャラ画像を生成(　→　背景含む全体) -> クロマキー処理
-            vtuber_img = self.edit_medias.create_vtuber_image()
+            # Vキャラ画像を生成(　→　背景含む全体
+            vtuber_img = await self.edit_medias.create_obs_screenshot_image("VTuber")
             vtuber_img_path = save_as_temp_file(vtuber_img)
 
             # ホワイトボード画像を生成
@@ -178,24 +199,29 @@ class GenerateVideo:
             whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_img)
             whiteboard_image_path = save_as_temp_file(whiteboard_image)
 
-            # 解説画像(初期値：グリーンバック)を生成
-            explanation_image_path = self.default_explanation_image_path
 
             # ホワイトボード画像に解説画像を合成する
-            explanation_img = whiteboard_image
-            load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
+            load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
+            # explanation_img = whiteboard_image
+            
+            # 解説画像(初期値：グリーンバック)を生成
+            # explanation_image_path = self.default_explanation_image_path
+            load_explanation_img = Image.open(self.default_explanation_image_path).convert("RGBA")  # RGBAモードに変換
+            # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
             # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
-            load_explanation_img = self.edit_medias.resize_image_aspect_ratio(load_explanation_img, whiteboard_image.width - 20, whiteboard_image.height - 20)
+            load_explanation_img = self.edit_medias.resize_image_aspect_ratio(load_explanation_img, load_whiteboard_image.width - 20, load_whiteboard_image.height - 20)
             # 解説画像の周りにボーダーを追加
-            load_explanation_img = self.edit_medias.add_border(load_explanation_img, 5)
+            # load_explanation_img = self.edit_medias.add_border(load_explanation_img, 5)
+
             # whiteboard_x = 30#ホワイトボード画像の位置を計算
             # whiteboard_y = 30#ホワイトボード画像の位置を計算
             # explanation_x = (explanation_img.width - load_explanation_img.width) // 2 + whiteboard_x#解説画像の位置を計算
             # explanation_y = (explanation_img.height - load_explanation_img.height) // 2 + whiteboard_y#解説画像の位置を計算
-            explanation_x = (explanation_img.width - load_explanation_img.width) // 2 #解説画像の位置を計算
-            explanation_y = (explanation_img.height - load_explanation_img.height) // 2 #解説画像の位置を計算
-            explanation_img.paste(load_explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
-            explanation_image_path = save_as_temp_file(explanation_img)
+
+            explanation_x = (load_whiteboard_image.width - load_explanation_img.width) // 2 #解説画像の位置を計算
+            explanation_y = (load_whiteboard_image.height - load_explanation_img.height) // 2 #解説画像の位置を計算
+            load_whiteboard_image.paste(load_explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
+            explanation_image_path = save_as_temp_file(load_whiteboard_image)
 
             # # test
             # green_explanation_img = self.preview_green
@@ -203,7 +229,7 @@ class GenerateVideo:
             # explanation_image_path = save_as_temp_file(green_explanation_img)
 
             # プレビュー画像を生成
-            preview_image = self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path)
+            preview_image = self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path, background_image_path)
 
             # フレームデータの生成とリストへの保存
             frame_data = FrameData(
@@ -220,7 +246,7 @@ class GenerateVideo:
                 whiteboard_image_path=whiteboard_image_path,
                 subtitle_image_path=subtitle_image_path,
                 preview_image=preview_image,
-                # background_video_path=background_video_file_input
+                background_video_path=background_image_path
             )
             self.frame_data_list.append(frame_data)
 

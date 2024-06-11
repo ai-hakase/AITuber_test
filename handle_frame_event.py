@@ -83,10 +83,40 @@ class HandleFrameEvent:
         return "\n".join(diff_list)
 
 
+    # ギャラリーのインデックスが選択されたときに呼び出される関数
+    def handle_gallery_click(self, evt: gr.SelectData, 
+                character_name,subtitle_input, reading_input, update_reading_speed_slider,
+                selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                image_video_input, whiteboard_image_path, 
+                selected_index, frame_data_list_state: list[FrameData]):
+        
+        new_selected_index = evt.index  # ギャラリーのインデックスを取得 -> kwargs のセレクトインデックスを更新
+        current_frame_data: FrameData = frame_data_list_state[selected_index] #現在のフレームデータを取得
+        
+        # 現在のデータと新しいデータを比較
+        if (current_frame_data.subtitle_line != subtitle_input 
+                or current_frame_data.reading_line != reading_input 
+                or current_frame_data.reading_speed != update_reading_speed_slider
+                or current_frame_data.emotion_shortcut != emotion_dropdown
+                or current_frame_data.motion_shortcut != motion_dropdown
+                or current_frame_data.explanation_image_path != image_video_input
+                ): 
+
+            # データが異なる場合のみ更新
+            if image_video_input != None: #画像がある場合
+                return self.on_update_reading_click(
+                    character_name,subtitle_input, reading_input, update_reading_speed_slider,
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
+                    selected_index, frame_data_list_state)
+           
+        return self.update_ui_elements(new_selected_index, frame_data_list_state)
+
+
     # 読み方変更ボタンがクリックされたときの処理
     def on_update_reading_click(self, character_name, subtitle_input, reading_input, update_reading_speed_slider, selected_model_tuple_state, 
-                test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, 
-                preview_images, selected_index, frame_data_list_state: list[FrameData]):
+                emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, 
+                selected_index, frame_data_list_state: list[FrameData]):
 
         # フレームデータリストがNoneの場合の処理
         if frame_data_list_state is None:
@@ -142,36 +172,6 @@ class HandleFrameEvent:
 
         # UIコンポーネントを更新
         return self.update_ui_elements(selected_index, frame_data_list_state)
-
-
-
-    # ギャラリーのインデックスが選択されたときに呼び出される関数
-    def handle_gallery_click(self, evt: gr.SelectData, 
-                character_name, subtitle_input, reading_input, update_reading_speed_slider,
-                selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                image_video_input, whiteboard_image_path, preview_images, 
-                selected_index, frame_data_list_state: list[FrameData]):
-        
-        new_selected_index = evt.index  # ギャラリーのインデックスを取得 -> kwargs のセレクトインデックスを更新
-
-        current_frame_data: FrameData = frame_data_list_state[selected_index] #現在のフレームデータを取得
-        
-        # 現在のデータと新しいデータを比較
-        if (current_frame_data.subtitle_line != subtitle_input 
-                or current_frame_data.reading_line != reading_input 
-                or current_frame_data.reading_speed != update_reading_speed_slider
-                or current_frame_data.emotion_shortcut != emotion_dropdown
-                or current_frame_data.motion_shortcut != motion_dropdown
-                or current_frame_data.explanation_image_path != image_video_input
-                ): 
-
-            # データが異なる場合のみ更新
-            if image_video_input != None: #画像がある場合
-                return self.on_update_reading_click(character_name, subtitle_input, reading_input, update_reading_speed_slider, selected_model_tuple_state, 
-                test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, 
-                preview_images, selected_index, frame_data_list_state)
-           
-        return self.update_ui_elements(new_selected_index, frame_data_list_state)
 
 
     # def on_video_creation_complete(self, task, selected_index, frame_data_list):
