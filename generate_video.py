@@ -50,7 +50,9 @@ class GenerateVideo:
         self.scene_name = "AI_Tuber_test"
 
     # プレビュー画像を生成する関数
-    def generate_preview_image(self, background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_character_path, background_image_path=None):
+    def generate_preview_image(self, background_video_file_input, 
+                               explanation_image_path, whiteboard_image_path, subtitle_image_path, 
+                               vtuber_character_path, background_image_path=None):
 
         if background_image_path:
             # 背景動画の最初のフレームを読み込む
@@ -137,7 +139,7 @@ class GenerateVideo:
                     reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
 
         from handle_frame_event import HandleFrameEvent
-        handle_frame_event = HandleFrameEvent(self)
+        handle_frame_event = HandleFrameEvent()
 
         # global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
         # frame_data_list = [] # フレームデータのリストをクリア
@@ -181,47 +183,55 @@ class GenerateVideo:
             background_image = await self.edit_medias.create_obs_screenshot_image("background")
             background_image_path = save_as_temp_file(background_image)
 
+            # Vキャラ画像を生成(　→　背景含む全体
+            vtuber_img = await self.edit_medias.create_obs_screenshot_image("VTuber")
+            vtuber_img_path = save_as_temp_file(vtuber_img)
+
+
+            # # ホワイトボード画像を生成
+            # # VTuber_subtitle_height = self.preview_width -1#調整
+            # # プレビューウィズの2/3の大きさに調整する   
+            # # whiteboard_subtitle_width = self.preview_width // 3 * 2
+            # # whiteboard_subtitle_height = self.preview_height - subtitle_img.height // 2 +20#調整
+            # # print(f"width,height: {whiteboard_subtitle_width},{whiteboard_subtitle_height}")
+            # whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_img)
+            # whiteboard_image_path = save_as_temp_file(whiteboard_image)
+
+
+            # # ホワイトボード画像に解説画像を合成する
+            # load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
+            # # explanation_img = whiteboard_image
+            
+            # # 解説画像(初期値：グリーンバック)を生成
+            # # explanation_image_path = self.default_explanation_image_path
+            # load_explanation_img = Image.open(self.default_explanation_image_path).convert("RGBA")  # RGBAモードに変換
+            # # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
+            # # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
+            # load_explanation_img = self.edit_medias.resize_image_aspect_ratio(load_explanation_img, load_whiteboard_image.width - 20, load_whiteboard_image.height - 20)
+            # # 解説画像の周りにボーダーを追加
+            # # load_explanation_img = self.edit_medias.add_border(load_explanation_img, 5)
+
+            # # whiteboard_x = 30#ホワイトボード画像の位置を計算
+            # # whiteboard_y = 30#ホワイトボード画像の位置を計算
+            # # explanation_x = (explanation_img.width - load_explanation_img.width) // 2 + whiteboard_x#解説画像の位置を計算
+            # # explanation_y = (explanation_img.height - load_explanation_img.height) // 2 + whiteboard_y#解説画像の位置を計算
+
+            # explanation_x = (load_whiteboard_image.width - load_explanation_img.width) // 2 #解説画像の位置を計算
+            # explanation_y = (load_whiteboard_image.height - load_explanation_img.height) // 2 #解説画像の位置を計算
+            # load_whiteboard_image.paste(load_explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
 
             # 字幕画像の生成->グリーンバック＋字幕画像
             subtitle_img = self.edit_medias.generate_subtitle(subtitle_line, self.preview_width, self.preview_height)#字幕画像の生成
             subtitle_image_path = save_as_temp_file(subtitle_img)#テンポラリファイルに保存
 
-            # Vキャラ画像を生成(　→　背景含む全体
-            vtuber_img = await self.edit_medias.create_obs_screenshot_image("VTuber")
-            vtuber_img_path = save_as_temp_file(vtuber_img)
-
-            # ホワイトボード画像を生成
-            # VTuber_subtitle_height = self.preview_width -1#調整
-            # プレビューウィズの2/3の大きさに調整する   
-            # whiteboard_subtitle_width = self.preview_width // 3 * 2
-            # whiteboard_subtitle_height = self.preview_height - subtitle_img.height // 2 +20#調整
-            # print(f"width,height: {whiteboard_subtitle_width},{whiteboard_subtitle_height}")
-            whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_img)
+            # ホワイトボード画像の生成
+            whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_image_path)
             whiteboard_image_path = save_as_temp_file(whiteboard_image)
-
-
-            # ホワイトボード画像に解説画像を合成する
-            load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
-            # explanation_img = whiteboard_image
-            
-            # 解説画像(初期値：グリーンバック)を生成
-            # explanation_image_path = self.default_explanation_image_path
-            load_explanation_img = Image.open(self.default_explanation_image_path).convert("RGBA")  # RGBAモードに変換
-            # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
-            # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
-            load_explanation_img = self.edit_medias.resize_image_aspect_ratio(load_explanation_img, load_whiteboard_image.width - 20, load_whiteboard_image.height - 20)
-            # 解説画像の周りにボーダーを追加
-            # load_explanation_img = self.edit_medias.add_border(load_explanation_img, 5)
-
-            # whiteboard_x = 30#ホワイトボード画像の位置を計算
-            # whiteboard_y = 30#ホワイトボード画像の位置を計算
-            # explanation_x = (explanation_img.width - load_explanation_img.width) // 2 + whiteboard_x#解説画像の位置を計算
-            # explanation_y = (explanation_img.height - load_explanation_img.height) // 2 + whiteboard_y#解説画像の位置を計算
-
-            explanation_x = (load_whiteboard_image.width - load_explanation_img.width) // 2 #解説画像の位置を計算
-            explanation_y = (load_whiteboard_image.height - load_explanation_img.height) // 2 #解説画像の位置を計算
-            load_whiteboard_image.paste(load_explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
-            explanation_image_path = save_as_temp_file(load_whiteboard_image)
+            # デフォルトの解説画像を読み込み
+            explanation_image_path = self.default_explanation_image_path
+            # ホワイトボード画像と解説画像を合成
+            composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path)
+            explanation_image_path = save_as_temp_file(composite_image)
 
             # # test
             # green_explanation_img = self.preview_green

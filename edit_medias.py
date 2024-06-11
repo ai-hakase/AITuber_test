@@ -162,7 +162,6 @@ class EditMedia:
 
         subtitle_img = self.resize_image_aspect_ratio(img, preview_width, preview_height)#リサイズ
 
-
         # グリーンバック画像を生成 -> 1920x1080
         subtitle_with_green_background = Image.new('RGB', (preview_width, preview_height), (0, 255, 0))
 
@@ -188,7 +187,7 @@ class EditMedia:
 
 
     # PILを使用してホワイトボード画像を生成
-    def create_whiteboard(self, preview_width, preview_height, subtitle_img):
+    def create_whiteboard(self, preview_width, preview_height, subtitle_image_path):
         
         # ホワイトボードのサイズを計算
         left_margin = 30
@@ -196,11 +195,12 @@ class EditMedia:
         top_margin = 30
         bottom_margin = 30
 
-        subtitle_img = Image.open(r"Asset\tb00018_03_pink.png")
+        # subtitle_img = Image.open(r"Asset\tb00018_03_pink.png")
+        subtitle_img = Image.open(subtitle_image_path)
 
         # ホワイトボードのサイズを計算
         whiteboard_width = preview_width // 4 * 3 +50#調整
-        whiteboard_height = preview_height - subtitle_img.height // 2 -30#調整
+        whiteboard_height = preview_height - subtitle_img.height // 4 +20#調整
 
         # ホワイトボードのサイズを計算
         whiteboard_width = whiteboard_width - left_margin - right_margin
@@ -208,11 +208,46 @@ class EditMedia:
 
         # print(f"width,height: {whiteboard_width},{whiteboard_height}")
         # ホワイトボード画像を作成
-        # img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 0))
-        img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 150))
+        img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 0))
+        # img = Image.new('RGBA', (whiteboard_width, whiteboard_height), (255, 255, 255, 150))
 
         #一時ファイルに保存してパスを返す
         return img
+
+
+    def generate_composite_image(self, whiteboard_image_path, explanation_image_path):
+        """
+        字幕画像と解説画像を受け取り、合成画像を生成して返す関数
+
+        Args:
+            subtitle_image_path (Image.Image): 字幕画像のパス
+            explanation_image_path (str): 解説画像のパス
+
+        Returns:
+            Image.Image: 合成画像
+        """
+
+        # ホワイトボード画像と解説画像を読み込み
+        load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")
+        load_explanation_img = Image.open(explanation_image_path).convert("RGBA")
+
+        # 解説画像の周りにボーダーを追加
+        load_explanation_img = self.add_border(load_explanation_img, 5)
+
+        # 解説画像をリサイズ (アスペクト比を維持)
+        load_explanation_img = self.resize_image_aspect_ratio(
+            load_explanation_img, load_whiteboard_image.width - 20, load_whiteboard_image.height - 20
+        )
+
+        # 解説画像を中央に配置
+        explanation_x = (load_whiteboard_image.width - load_explanation_img.width) // 2
+        explanation_y = (load_whiteboard_image.height - load_explanation_img.height) // 2
+
+        # ホワイトボード画像に解説画像を合成
+        load_whiteboard_image.paste(load_explanation_img, (explanation_x, explanation_y))
+
+        return load_whiteboard_image
+
 
 
     async def create_obs_screenshot_image(self, source_name):

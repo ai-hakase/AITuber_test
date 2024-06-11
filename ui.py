@@ -33,7 +33,8 @@ class UI:
         self.create_subtitle_voice = CreateSubtitleVoice()
         # self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
         self.handle_gallery_event = HandleGalleryEvent()
-        self.handle_frame_event = HandleFrameEvent(self.generate_video)  # インスタンスを渡す
+        # self.handle_frame_event = HandleFrameEvent(self.generate_video)  # インスタンスを渡す
+        self.handle_frame_event = HandleFrameEvent()  # インスタンスを渡す
 
         # 設定ファイルの読み込み
         with open(DEFAULT_SETTING_FILE, "r", encoding="utf-8") as f:
@@ -304,8 +305,8 @@ class UI:
                 fn=self.handle_frame_event.on_update_reading_click,
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
@@ -322,8 +323,8 @@ class UI:
                 fn=self.handle_frame_event.on_update_reading_click,
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
@@ -370,8 +371,8 @@ class UI:
                 inputs=[
                     output_folder_input, bgm_file_input, background_video_file_input, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
