@@ -4,31 +4,33 @@ import random
 from transformers import AutoTokenizer, LukeConfig, AutoModelForSequenceClassification
 from constants import TALKING, WAITING, BAYBAY, EMOTIONS
 
+
+# デバイスの設定
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using {DEVICE}")
+
+# 感情分析モデルの準備
+tokenizer = AutoTokenizer.from_pretrained("Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime")
+config = LukeConfig.from_pretrained('Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime', output_hidden_states=True)
+model = AutoModelForSequenceClassification.from_pretrained('Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime', config=config)
+model.to(DEVICE)
+
+
 class SetupVtuberKeys:
 
     def __init__(self):
-        self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"Using {self.DEVICE}")
-
-        # 感情分析モデルの準備
-        self.tokenizer = AutoTokenizer.from_pretrained("Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime")
-        config = LukeConfig.from_pretrained('Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime', output_hidden_states=True)
-        self.model = AutoModelForSequenceClassification.from_pretrained('Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime', config=config)
-        self.model.to(self.DEVICE)
-
         self.previous_motion_shortcut = None
         self.sub_previous_motion_shortcut = None
-
 
 
     # 感情分析を行う関数
     def analyze_sentiment(self, text):
         # テキストの感情分析を行い、感情ラベルを返す
-        token = self.tokenizer(text, truncation=True, max_length=512, padding="max_length")
-        input_ids = torch.tensor(token['input_ids']).unsqueeze(0).to(self.DEVICE)
-        attention_mask = torch.tensor(token['attention_mask']).unsqueeze(0).to(self.DEVICE)
+        token = tokenizer(text, truncation=True, max_length=512, padding="max_length")
+        input_ids = torch.tensor(token['input_ids']).unsqueeze(0).to(DEVICE)
+        attention_mask = torch.tensor(token['attention_mask']).unsqueeze(0).to(DEVICE)
         with torch.no_grad():
-            output = self.model(input_ids, attention_mask)
+            output = model(input_ids, attention_mask)
         max_index = torch.argmax(output.logits)
         return EMOTIONS[max_index]
 
@@ -49,7 +51,6 @@ class SetupVtuberKeys:
         """
         ショートカットキーをランダムにキーを選択する関数
         """
-
         if character == "葉加瀬あい":
         # if character == self.main_character:
             emotion = self.analyze_sentiment(line)
