@@ -4,7 +4,7 @@
 
 ## 最終的な出力イメージ
 
-![sample_video](Asset/sample_video.mp4)
+![sample_video](Asset/sample_video.gif)
 
 ## スクリーンショット
 
