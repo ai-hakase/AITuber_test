@@ -74,8 +74,8 @@ def start_process(process_path):
 # async def send_hotkey():
 def send_hotkey():
     # await time.sleep(20)
-    time.sleep(15)
-    pyautogui.hotkey('alt', '4', interval=0.05)
+    time.sleep(30)
+    pyautogui.hotkey("alt", "4", interval=0.05)
 
 
 # async def main():

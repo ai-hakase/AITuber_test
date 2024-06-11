@@ -2,6 +2,7 @@ from PIL import Image
 from moviepy.editor import VideoFileClip
 from utils import *
 from vtuber_camera import VTuberCamera
+from obs_controller import OBSController
 
 import textwrap
 from PIL import ImageDraw, ImageFont
@@ -11,6 +12,7 @@ class EditMedia:
 
     def __init__(self):
         self.vtuber_camera = VTuberCamera()
+        self.obs_controller = OBSController()
         # 字幕画像のパスを準備
         self.subtitle_image_path = "Asset/tb00018_03_pink.png"
         self.font_path = "Asset/NotoSansJP-VariableFont_wght.ttf"
@@ -161,7 +163,7 @@ class EditMedia:
         subtitle_img = self.resize_image_aspect_ratio(img, preview_width, preview_height)#リサイズ
 
 
-        # グリーンバック画像を生成
+        # グリーンバック画像を生成 -> 1920x1080
         subtitle_with_green_background = Image.new('RGB', (preview_width, preview_height), (0, 255, 0))
 
         # 字幕画像のサイズを取得
@@ -197,7 +199,7 @@ class EditMedia:
         subtitle_img = Image.open(r"Asset\tb00018_03_pink.png")
 
         # ホワイトボードのサイズを計算
-        whiteboard_width = preview_width // 4 * 3 -50#調整
+        whiteboard_width = preview_width // 4 * 3 +50#調整
         whiteboard_height = preview_height - subtitle_img.height // 2 -30#調整
 
         # ホワイトボードのサイズを計算
@@ -213,13 +215,17 @@ class EditMedia:
         return img
 
 
-    def create_vtuber_image(self):
+    async def create_obs_screenshot_image(self, source_name):
 
         # Camera -> Vキャラ画像をキャプチャ
-        vtuber_img = self.vtuber_camera.capture_image().convert("RGBA")  # RGBAモードに変換
+        screenshot_path = await self.obs_controller.take_screenshot(source_name)
+        screenshot_image =  Image.open(screenshot_path).convert("RGBA")  # RGBAモードに変換
+
+        # vtuber_img = Image.open(vtuber_img_path).convert("RGBA")  # RGBAモードに変換
+        # vtuber_img = self.vtuber_camera.capture_image().convert("RGBA")  # RGBAモードに変換
 
         # クロマキー処理
-        vtuber_img = process_transparentize_green_back(vtuber_img)
+        # screenshot_image = process_transparentize_green_back(screenshot_image)
 
         # # イメージの横幅を取得してそれの1/4を左と右のそれぞれから切り取る
         # vtuber_width, vtuber_height = vtuber_img.size
@@ -234,5 +240,5 @@ class EditMedia:
         # # リサイズ
         # vtuber_img = self.resize_image_aspect_ratio(vtuber_img, None, 720).convert("RGBA")  # RGBAモードに変換
 
-        return vtuber_img
+        return screenshot_image
 

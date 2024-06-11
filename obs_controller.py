@@ -9,6 +9,7 @@ import tempfile
 import base64
 import os
 
+from PIL import Image
 from utils import save_as_temp_file
 from obswebsocket import obsws, requests
 
@@ -94,7 +95,7 @@ class OBSController:
             return None
 
 
-    async def take_screenshot(self, source_name="Spout2 Capture 4", file_path=r"screenshot.png"):
+    async def take_screenshot(self, source_name, file_path=r"tmp/screenshot"):
         """スクリーンショットを撮る
 
         Args:
@@ -125,16 +126,19 @@ class OBSController:
         #     temp_file.write(image_data)
         #     file_path = temp_file.name
 
+        # タイムスタンプを追加
+        file_path = f"{file_path}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.png"
+
         # file_pathを絶対パスに変換
         file_path = os.path.abspath(file_path)
 
         request = requests.SaveSourceScreenshot(sourceName=source_name, imageFormat="png", imageFilePath=file_path)
         response = self.websocket.call(request)
 
-        print(f"response: {response}")
-        print(f"スクリーンショットを保存しました: {file_path}")
+        # print(f"response: {response}")
+        # print(f"スクリーンショットを保存しました: {file_path}\n")
 
-        return file_path  # 保存されたファイルパスを返す
+        return file_path
 
 
 

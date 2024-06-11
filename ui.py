@@ -146,7 +146,7 @@ class UI:
                                     headers=["Action", "Shortcut"],
                                     datatype=["str", "str"],
                                     col_count=(2, "fixed"),
-                                    row_count=6,
+                                    row_count=4,
                                     type="array",
                                     interactive=True
                                 )
@@ -286,8 +286,8 @@ class UI:
                 fn=self.handle_frame_event.handle_gallery_click,    
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
