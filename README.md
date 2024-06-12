@@ -3,11 +3,20 @@
 このプロジェクトは、CSVファイルに記述されたキャラクターとセリフの情報を元に、感情分析を行い、表情や動作のショートカットキーを自動的に入力することで、AI Tuberの動画を生成するプログラムです。
 
 ## 最終的な出力イメージ
+## 最終的な出力イメージ
 
 ![sample_video](Asset/chrome-capture-2024-6-12.gif)
 
 ## スクリーンショット
 
+![プロジェクトのスクリーンショット1](Asset/sample_image(1).png)
+
+![プロジェクトのスクリーンショット2](Asset/sample_image(2).png)
+
+
+## 設計書
+
+[https://xmind.app/m/FQAkZ2/](https://xmind.app/m/FQAkZ2)
 ![プロジェクトのスクリーンショット1](Asset/sample_image(1).png)
 
 ![プロジェクトのスクリーンショット2](Asset/sample_image(2).png)
@@ -46,11 +55,20 @@ git clone https://github.com/ai-hakase/AITuber_test.git
 2. 必要なPythonパッケージをインストールします。
 ```
 python -m venv myenv
+python -m venv myenv
 venv\Scripts\activate
 pip uninstall torch torchvision torchaudio
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 <!-- または pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 -->
+pip uninstall torch torchvision torchaudio
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+<!-- または pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 -->
 pip install -r requirements.txt
+```
+
+※ 書き出し
+```
+pip freeze > requirements.txt
 ```
 
 ※ 書き出し
@@ -72,6 +90,7 @@ pip freeze > requirements.txt
 4. CSVファイル、BGMファイル、背景動画ファイルを選択します。
 
 5. Live2D立ち上げ、00FF00 に背景を設定。API、バーチャルカメラを有効化しメインキャラクター名と音声合成モデルを選択します。
+5. Live2D立ち上げ、00FF00 に背景を設定。API、バーチャルカメラを有効化しメインキャラクター名と音声合成モデルを選択します。
 
 6. 必要に応じて、感情とアクションのショートカットキーを更新します。
 
@@ -88,6 +107,23 @@ pip freeze > requirements.txt
 ## 貢献
 
 プルリクエストや改善提案は歓迎します。問題やバグがある場合は、Issueを作成してください。
+
+## Memo
+
+OBS Studioの設定
+
+OBS Studioを起動します。
+シーンを作成し、必要なソース（背景画像、動画、音声）をシーンに追加します。
+音声ソースは入力のみで出力しない設定にしておきます。
+
+
+OBS WebSocketの設定
+
+OBS StudioにWebSocketプラグインをインストールします。
+WebSocketサーバーのIPアドレス、ポート、パスワードを設定します。
+PythonスクリプトからOBS StudioのWebSocketサーバーに接続します。
+https://github.com/obsproject/obs-websocket/releases
+
 
 ## Memo
 
