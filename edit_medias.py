@@ -229,7 +229,8 @@ class EditMedia:
 
         # ホワイトボード画像と解説画像を読み込み
         load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")
-        load_explanation_img = Image.open(explanation_image_path).convert("RGBA")
+        
+        load_explanation_img = load_image_or_video(explanation_image_path)
 
         # 解説画像の周りにボーダーを追加
         load_explanation_img = self.add_border(load_explanation_img, 5)

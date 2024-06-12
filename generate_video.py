@@ -78,12 +78,15 @@ class GenerateVideo:
         vtuber_img = Image.open(vtuber_character_path).convert("RGBA")  # RGBAモードに変換
         # vtuber_img = process_transparentize_green_back(vtuber_img) # グリーンスクリーンを透明にする
 
-        # ホワイトボード画像を読み込む
-        whiteboard_img = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
+        # # ホワイトボード画像を読み込む
+        # whiteboard_img = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
 
-        # 解説画像を読み込む
-        explanation_img = load_image_or_video(explanation_image_path)
-        # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
+        # # 解説画像を読み込む
+        # explanation_img = load_image_or_video(explanation_image_path)
+        # # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
+
+        whiteboard_and_explanation_img = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path) 
+        whiteboard_and_explanation_img_path = save_as_temp_file(whiteboard_and_explanation_img)
 
 
         # # 背景画像を合成
@@ -109,7 +112,7 @@ class GenerateVideo:
         self.preview.paste(background_image, (0, 0))
 
         # 解説画像を合成
-        self.preview.paste(explanation_img, (30, 30), mask=explanation_img)
+        self.preview.paste(whiteboard_and_explanation_img, (30, 30), mask=whiteboard_and_explanation_img)
 
         # Vキャラ画像を合成->obsのスクリーンショット
         # リサイズ後の位置を計算
@@ -227,11 +230,11 @@ class GenerateVideo:
             # ホワイトボード画像の生成
             whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_image_path)
             whiteboard_image_path = save_as_temp_file(whiteboard_image)
-            # デフォルトの解説画像を読み込み
-            explanation_image_path = self.default_explanation_image_path
-            # ホワイトボード画像と解説画像を合成
-            composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path)
-            explanation_image_path = save_as_temp_file(composite_image)
+
+             # ホワイトボード画像と解説画像を合成
+            explanation_image_path = self.default_explanation_image_path # デフォルトの解説画像を読み込み
+            # whiteboard_and_explanation_img = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path) 
+            # whiteboard_and_explanation_img_path = save_as_temp_file(whiteboard_and_explanation_img)
 
             # # test
             # green_explanation_img = self.preview_green

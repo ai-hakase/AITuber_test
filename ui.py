@@ -376,11 +376,13 @@ class UI:
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
-                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
-                    selected_index, frame_data_list_state, video_preview_output
                     ],
+                # outputs=[
+                #     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                #     selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                #     image_video_input, whiteboard_image_path, preview_images, 
+                #     selected_index, frame_data_list_state, video_preview_output
+                #     ],
                 show_progress=True,
             )
 

@@ -1,14 +1,14 @@
 import os
 import tempfile
 import json
-from moviepy.editor import VideoFileClip
-import gradio as gr
-from constants import *
 import cv2
 import numpy as np
-from PIL import Image
 import shutil
 
+from PIL import Image
+from moviepy.editor import VideoFileClip
+
+from constants import *
 
 
 # def load_settings(file_path):
@@ -129,7 +129,7 @@ def load_image_or_video(path):
         if img is None:
             raise ValueError("動画からフレームを抽出できませんでした。")
     else:
-        img = Image.open(path)
+        img = Image.open(path).convert("RGBA")
     return img
 
 
@@ -295,3 +295,62 @@ def resize_media(media_path, target_width, target_height):
         out.release()
         
         return video
+    
+
+    # 動画のアスペクト比を維持しながらリサイズ 
+def resize_video_aspect_ratio(input_path, output_path, target_width=None, target_height=None):
+    # 動画クリップを読み込む
+    video = VideoFileClip(input_path)
+    
+    # 元の動画のサイズ
+    width, height = video.size
+    aspect_ratio = width / height
+
+    # 新しいサイズを計算
+    if target_width is not None and target_height is not None:
+        target_aspect_ratio = target_width / target_height
+        if aspect_ratio > target_aspect_ratio:
+            new_width = target_width
+            new_height = int(new_width / aspect_ratio)
+        else:
+            new_height = target_height
+            new_width = int(new_height * aspect_ratio)
+    elif target_width is not None:
+        new_width = target_width
+        new_height = int(new_width / aspect_ratio)
+    elif target_height is not None:
+        new_height = target_height
+        new_width = int(new_height * aspect_ratio)
+    else:
+        new_width, new_height = width, height
+
+    # 動画クリップをリサイズ
+    resized_video = video.resize(newsize=(new_width, new_height))
+
+    return resized_video
+
+
+
+# アスペクト比を維持しながら、指定した横幅または高さに基づいてリサイズ後の寸法を計算
+def resize_aspect_ratio(current_width, current_height, target_width, target_height):
+    aspect_ratio = current_width / current_height
+    
+    if target_width is not None and target_height is not None:
+        target_aspect_ratio = target_width / target_height
+        if aspect_ratio > target_aspect_ratio:
+            new_width = target_width
+            new_height = int(new_width / aspect_ratio)
+        else:
+            new_height = target_height
+            new_width = int(new_height * aspect_ratio)
+    elif target_width is not None:
+        new_width = target_width
+        new_height = int(new_width / aspect_ratio)
+    elif target_height is not None:
+        new_height = target_height
+        new_width = int(new_height * aspect_ratio)
+    else:
+        new_width = current_width
+        new_height = current_height
+    
+    return new_width, new_height

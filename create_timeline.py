@@ -1,30 +1,21 @@
-import threading
-import sys
 import os
-import random
-import asyncio
-import queue
+import sys
 import librosa
 import sounddevice as sd
-import pygame
-import cv2
-import time
-import signal
+import json
+import subprocess
 
+from datetime import datetime
+from PIL import Image
+from PyQt5.QtWidgets import QApplication, QWidget
+from moviepy.editor import ImageClip, VideoFileClip, CompositeVideoClip, ColorClip
 
 from render import FrameData
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
 from obs_controller import OBSController
-from utils import save_as_temp_file
+from utils import resize_aspect_ratio, save_as_temp_file, save_as_temp_video
+from edit_medias import EditMedia
 from create_windows import CreateWindows
-from PyQt5.QtWidgets import QApplication, QWidget
-
-# 一つ上の階層のパスを取得
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
-
-from vtuber_camera import VTuberCamera
-from utils import *
 
 
 # タイムラインの作成
@@ -32,6 +23,7 @@ class Timeline:
     def __init__(self, frame_data_list: list[FrameData], output_file: str, background_video_path: str):
         self.hotkey_trigger = VTubeStudioHotkeyTrigger()
         self.obs_controller = OBSController()
+        self.edit_medias = EditMedia()
         
         # QApplicationのインスタンスを作成
         self.app = QApplication(sys.argv)
@@ -63,15 +55,6 @@ class Timeline:
         self.explanation_video_start_time = 0# 解説動画の再生時間
         self.previous_video_duration = 0# 前の動画の長さ
 
-    #     # シグナルハンドラの設定
-    #     signal.signal(signal.SIGINT, self.handle_exit)
-
-    # async def handle_exit(self, signum, frame):
-    #     print("録画停止中...")
-    #     self.output_file_path = await self.obs_controller.stop_recording()
-    #     print("録画が停止されました。")
-    #     sys.exit(0)
-
 
     def setup_media_and_shortcut_keys(self):
         total_time = 0
@@ -81,7 +64,9 @@ class Timeline:
             frame_data.start_time = total_time
             data, samplerate = librosa.load(frame_data.audio_file)
             audio_duration = librosa.get_duration(y=data, sr=samplerate)
-            frame_data.end_time = total_time + int(audio_duration * 1000)  # ミリ秒に変換
+            audio_duration = int(audio_duration * 1000)
+            frame_data.audio_duration = audio_duration
+            frame_data.end_time = total_time + audio_duration  # ミリ秒に変換
             # total_time = frame_data.end_time
 
             # ショートカットキーの入力
@@ -99,7 +84,6 @@ class Timeline:
             # ショートカットキーのIDをリストに格納
             frame_data.emotion_shortcut = emotion_shortcut_key_ID
             frame_data.motion_shortcut = motion_shortcut_key_ID
-
 
 
     # タイムラインの作成

@@ -52,6 +52,7 @@ class OBSController:
             self.websocket = None
             
     async def start_recording(self):
+        await asyncio.sleep(0.5)
         request = requests.StartRecord()
         response = self.websocket.call(request)
 

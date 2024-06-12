@@ -178,8 +178,12 @@ class HandleFrameEvent:
             explanation_image_path = frame_data_list_state[selected_index].explanation_image_path
             # explanation_image_path = self.generate_video.default_explanation_image_path #r"Asset\Greenbak.png"
         else:
-            composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, image_video_input)
-            explanation_image_path = save_as_temp_file(composite_image)
+            explanation_image_path = image_video_input
+        #     composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, image_video_input)
+            # explanation_image_path = save_as_temp_file(composite_image)
+
+        # composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path)
+        # explanation_image_path = save_as_temp_file(composite_image)
 
         background_video_file = "background_video\default_video.mp4"
         background_image_path = frame_data_list_state[selected_index].background_video_path
@@ -251,8 +255,9 @@ class HandleFrameEvent:
             result = self.on_update_reading_click(
                                       character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                                       selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                                      image_video_input, whiteboard_image_path, 
-                                      selected_index, frame_data_list_state)
+                                      image_video_input, whiteboard_image_path,  
+                                      selected_index, frame_data_list_state
+                                      )
 
         # output_folder_inputがなければ作成する
         if not os.path.exists(output_folder_input):
@@ -269,21 +274,25 @@ class HandleFrameEvent:
         # task.add_done_callback(lambda t: self.on_video_creation_complete(t, selected_index, frame_data_list))
         # await create_video.create_video_run()
 
-        if result is not None:
-            (
-                character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                image_video_input, whiteboard_image_path, preview_images, selected_index, 
-                frame_data_list_state
-            ) = result
+        print(f"output_file_path -> {output_file_path}")
+        print(f"result -> {result}")
 
-        # print(f"result -> {result}")
-        # print(f"current_frame_data -> {current_frame_data}")
+        # if result is not None:
+        #     (
+        #         character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+        #         selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+        #         image_video_input, whiteboard_image_path, preview_images, 
+        #         selected_index, frame_data_list_state
+        #     ) = result
 
-        return (
-            character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-            selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-            None, whiteboard_image_path, preview_images, selected_index, 
-            frame_data_list_state, gr.update(value=output_file_path, visible=True) 
-        ) 
+        # # print(f"result -> {result}")
+        # # print(f"current_frame_data -> {current_frame_data}")
+
+        # return (
+        #     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+        #     selected_model_tuple_state, None, emotion_dropdown, motion_dropdown, 
+        #     None, whiteboard_image_path, None, 
+        #     selected_index, frame_data_list_state, 
+        #     gr.update(value=output_file_path, visible=True) 
+        # ) 
     

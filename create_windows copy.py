@@ -2,17 +2,13 @@ import asyncio
 import os
 import sys
 import subprocess
-import cv2
-import time
 
 from PIL import Image
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import  QWidget
-from PyQt5.QtCore import Qt,QUrl , QEventLoop, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt,QUrl , QEventLoop, QThread, pyqtSignal
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QAudioOutput, QAudioDeviceInfo, QAudio
 from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem, QVideoWidget
-from PyQt5.QtGui import QPixmap, QImage
-
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
 from render import FrameData
 
@@ -25,29 +21,14 @@ class CreateWindows(QWidget):
         super().__init__()
         # self.trigger_hotkey_signal.connect(self.trigger_hotkey_handler)
 
-        self.default_subtitle_image_path = r'Asset\tb00018_03_pink.png'
-        self.default_explanation_image_path = r'Asset\tmpq9fc1jl_.png'
-        self.default_whiteboard_image_path = r'Asset\white_boad.png'
-        self.default_video_path = r'Asset\sample_video.mp4'
-
         self.frame_data_list = frame_data_list
         self._audio_started = False  # 音声再生開始フラグ（インスタンス変数）
         self.app = QtWidgets.QApplication(sys.argv)
         self.windows = {}  # ウィンドウを格納する辞書
         self.current_frame_data = frame_data_list[0]
-        self.video_capture = None  # ビデオキャプチャ用変数を追加
-        self.fps = None
-
-
-
-        self.video_shown = False  # 動画が最初に表示されたかどうかを管理するフラグ
-        self.last_video_path = None  # 最後に表示した動画のパスを記憶する変数
+        self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
 
         self.current_frame_index = 0
-
-
-
-        self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
 
         # 利用可能なオーディオデバイスの一覧を取得
         devices = QAudioDeviceInfo.availableDevices(QAudio.AudioOutput)
@@ -72,20 +53,12 @@ class CreateWindows(QWidget):
         self.media_player.stateChanged.connect(self.handle_state_changed)  # 状態遷移を監視
 
         # QMediaPlayerのaudioOutputプロパティにQAudioOutputを設定
-        # self.media_player.audioOutput = self.audio_output
+        self.media_player.audioOutput = self.audio_output
 
         self.create()
         self.load_media(0)  # 最初の音声ファイルをロード
-        self.show_image("subtitle", frame_data_list[0].subtitle_image_path, is_subtitle=True)  # 初期画像を表示
-        # self.show_image("subtitle", self.default_subtitle_image_path, is_subtitle=True)  # 初期画像を表示
-        explanation_image_path = frame_data_list[0].explanation_image_path
-
-        if explanation_image_path.endswith(('.mp4', '.avi', '.mov')):  # 動画ファイルの拡張子をチェック
-            self.show_video("explanation", explanation_image_path)
-        else:
-            self.show_image("explanation", explanation_image_path)
-        # self.show_image("explanation", self.default_explanation_image_path)
-
+        self.show_media("subtitle", self.frame_data_list[0].subtitle_image_path)  # 初期画像を表示
+        self.show_media("explanation", self.frame_data_list[0].explanation_image_path)
 
         # 利用可能なオーディオデバイスの一覧を表示
         # self.list_audio_devices()
@@ -141,32 +114,32 @@ class CreateWindows(QWidget):
 
 
     def start(self):
+
+        # timeline.create()
+        # timeline.show()
         self.media_player.play()
+        # 終了処理
         self.app.exec()
+
         print(f"🌟 end")
+# sys.exit(timeline.app.exec_())
+
+
 
 
     # def handle_state_changed(self, state):
     def handle_state_changed(self, state):
-        # 音声ファイルの再生が開始した瞬間
-        # フラグが False である、つまりまだ一度も音声再生が開始されていないことを示します。
-        if state == QMediaPlayer.PlayingState and not self._audio_started:
-            print(f"🌟 音声再生開始: {self._audio_started}")
-            self._audio_started = True  # 音声再生開始フラグを True に設定
-            self.update_images()  # 最初の再生開始時のみ画像を更新
-
-        # 音声ファイルの再生が終了した瞬間
         if state == QMediaPlayer.StoppedState and self.media_player.mediaStatus() == QMediaPlayer.EndOfMedia:
-            print(f"🌟 音声再生終了: {self._audio_started}")
-            # self.update_images()  # 初期画像を表示
+            # self.trigger_hotkey_signal.emit()
+            self.update_images()
 
             if self.current_frame_index + 1 < len(self.frame_data_list):
-                self.load_media(self.current_frame_index + 1)  # 次の音声ファイルをロード
-                self._audio_started = False  # 次の音声ファイル再生前にフラグをリセット
+                self.load_media(self.current_frame_index + 1)
                 self.media_player.play()
             else:
-                self.app.quit()  # 最後の音声ファイル再生後に終了
-                # sys.exit(timeline.app.exec_())
+                self.app.quit()
+
+
 
 
     def trigger_hotkey_handler(self):
@@ -199,26 +172,44 @@ class CreateWindows(QWidget):
 
     def update_images(self, position=None):
         frame_data = self.frame_data_list[self.current_frame_index]
+        self.show_media("subtitle", frame_data.subtitle_image_path)
+        self.show_media("explanation", frame_data.explanation_image_path)
 
-        if frame_data.explanation_image_path.endswith(('.mp4', '.avi', '.mov')):  # 動画ファイルの拡張子をチェック
-            self.show_image("subtitle", frame_data.subtitle_image_path, is_subtitle=True)
-            self.show_video("explanation", frame_data.explanation_image_path)
-            print(f"🌟 画像表示: {frame_data.subtitle_image_path}\n")
+
+    def show_media(self, window_name: str, media_path: str):
+        """
+        メディアを表示するメソッド
+        """
+        if media_path.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            self.show_image(window_name, media_path)
+        elif media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+            self.show_video(window_name, media_path)
         else:
-            self.show_image("subtitle", frame_data.subtitle_image_path, is_subtitle=True)
-            self.show_image("explanation", frame_data.explanation_image_path)
-            print(f"🌟 画像表示: {frame_data.subtitle_image_path}\n")
+            print(f"Unsupported media type: {media_path}")
 
 
-    def show_image(self, window_name: str, image_path: str, is_subtitle: bool = False):
-        # 現在の動画再生を停止
-        if self.video_shown and not is_subtitle:
-            self.timer.stop()
-            self.video_capture.release()
-            self.video_shown = False
-            self.last_video_path = None
-            print("現在の動画再生を停止しました。")
+    def show_image(self, window_name: str, image_path: str):
+        """
+        画像を表示するメソッド
+        """
+        image = QtGui.QImage(image_path)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        if not pixmap.isNull():
+            scene = self.windows[window_name].scene()
+            scene.clear()
+            scene.addPixmap(pixmap)
+            view_width = self.windows[window_name].width()
+            view_height = self.windows[window_name].height()
+            pixmap_item = scene.items()[0]
+            pixmap_item.setOffset((view_width - pixmap.width()) / 2, (view_height - pixmap.height()) / 2)
+            self.windows[window_name].show()
+            print(f"Image shown in {window_name}: {image_path}")
+        else:
+            print(f"Error loading image: {image_path}")
 
+
+    # def show_images(self, window_name: str, image_path: str):
+    def show_image(self, window_name: str, image_path: str):
         # print(f"windows: {self.windows}")
         # try:
         image = QtGui.QImage(image_path)
@@ -243,65 +234,82 @@ class CreateWindows(QWidget):
 
 
     def show_video(self, window_name: str, video_path: str):
+        """
+        動画を表示するメソッド
+        ホワイトボード画像[Asset\white_boad.png] を表示してからその上に動画を表示
+        """
+        scene = self.windows[window_name].scene()
+        scene.clear()
 
-        if self.video_shown and self.last_video_path == video_path:
-            print("動画は既に表示されています。")
-            return
-
-        # ホワイトボード画像の読み込みとサイズ取得
-        whiteboard_image = QtGui.QImage(self.default_whiteboard_image_path)
-        whiteboard_pixmap = QtGui.QPixmap.fromImage(whiteboard_image)
-        whiteboard_width = whiteboard_pixmap.width()
-        whiteboard_height = whiteboard_pixmap.height()
-    
-        self.video_capture = cv2.VideoCapture(video_path)  # OpenCV で動画ファイルを開く
-        self.fps = self.video_capture.get(cv2.CAP_PROP_FPS)  # フレームレートを取得
-        interval = int(1000 / self.fps)  # ミリ秒単位のインターバルを計算
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(lambda: self.update_video_frame(window_name, whiteboard_pixmap.copy(), whiteboard_width, whiteboard_height))  # copy() を追加
-        self.timer.start(interval)  # フレームレートに基づいてインターバルを設定
-        # self.timer.start(30)  # 約 30fps でフレーム更新
-
-        self.video_shown = True  # フラグをTrueに設定
-        self.last_video_path = video_path  # 最後に表示した動画のパスを記憶
+        # # --- ホワイトボード画像の表示 ---
+        # image_path = r"Asset\white_boad.png"
+        # image = QtGui.QImage(image_path)
+        # pixmap = QtGui.QPixmap.fromImage(image)
+        # if not pixmap.isNull():
+        #     scene = self.windows[window_name].scene()
+        #     scene.clear()
+        #     scene.addPixmap(pixmap)
+        #     view_width = self.windows[window_name].width()
+        #     view_height = self.windows[window_name].height()
+        #     pixmap_item = scene.items()[0]
+        #     pixmap_item.setOffset((view_width - pixmap.width()) / 2, (view_height - pixmap.height()) / 2)
+        #     self.windows[window_name].show()
+        #     print(f"Image shown in {window_name}: {image_path}")
+        # else:
+        #     print(f"Error loading image: {image_path}")
 
 
-    def update_video_frame(self, window_name, whiteboard_pixmap, whiteboard_width, whiteboard_height):
-        if self.video_capture.isOpened():
-            start_time = time.time()  # フレーム処理開始時間を記録
-            ret, frame = self.video_capture.read()
-            if ret:
-                # 動画フレームのサイズ調整（ホワイトボード画像のサイズを超えないように）
-                video_height, video_width, _ = frame.shape
-                aspect_ratio = video_width / video_height
-                new_video_width = min(whiteboard_height * aspect_ratio, whiteboard_width)  # 幅がホワイトボードを超えないように調整
-                new_video_height = min(whiteboard_height, new_video_width / aspect_ratio)  # 高さがホワイトボードを超えないように調整
-                frame = cv2.resize(frame, (int(new_video_width), int(new_video_height)))
+        # --- 動画の表示 ---
+        # QGraphicsVideoItemを作成
 
-                # OpenCV の BGR 形式を PyQt の RGB 形式に変換
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                height, width, channel = frame.shape
-                bytesPerLine = 3 * width
-                qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888)
-                video_pixmap = QPixmap.fromImage(qImg)
+        # h264_video_path = self.convert_to_h264(video_path)
 
-                # ホワイトボード画像に動画を合成
-                painter = QtGui.QPainter(whiteboard_pixmap)
-                # 整数除算を使用して座標を整数型に変換
-                x = int((whiteboard_width - new_video_width) // 2)
-                y = int((whiteboard_height - new_video_height) // 2)
-                painter.drawPixmap(x, y, video_pixmap)  # 中央に配置
-                painter.end()
+        video_item = QGraphicsVideoItem()
+        # シーンに動画アイテムを追加
+        scene.addItem(video_item)
+        # QMediaPlayerを作成し、動画を設定
+        media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
 
-                scene = self.windows[window_name].scene()
-                scene.clear()
-                scene.addPixmap(whiteboard_pixmap)
+        # media_player.setMedia(QMediaContent(QUrl.fromLocalFile(h264_video_path)))
+        media_player.setMedia(QMediaContent(QUrl.fromLocalFile(video_path)))
+        media_player.setVideoOutput(video_item)  # 動画の出力をvideo_itemに設定
+        print(f"video output set to video_item: {video_item}")  # video_item が設定されたか確認
 
-            end_time = time.time()  # フレーム処理終了時間を記録
-            elapsed_time = end_time - start_time  # 処理時間を計算
-            wait_time = max(0, (1 / self.fps) - elapsed_time)  # 待機時間を計算
-            time.sleep(wait_time)  # 待機
+
+
+        # ウィンドウのサイズを取得してvideo_itemのサイズを設定
+        view_width = self.windows[window_name].width()
+        view_height = self.windows[window_name].height()
+        video_item.setSize(QtCore.QSizeF(view_width, view_height))
+        video_item.setPos(0, 0) 
+        print(f"video_item size set to: {view_width}x{view_height}")  # video_item のサイズを確認
+
+
+        # デバッグ用のシグナル接続
+        media_player.error.connect(lambda: print(f"Media player error: {media_player.errorString()}"))
+        media_player.stateChanged.connect(lambda state: print(f"Media player state changed: {state}"))
+        media_player.mediaStatusChanged.connect(lambda status: print(f"Media player status changed: {status}"))
+
+
+
+        media_player.play()  # 動画再生
+        print(f"media_player play status: {media_player.state()}")  # 再生状態を確認 (QMediaPlayer.PlayingState のはず)
+
+
+        # ウィンドウを表示
+        self.windows[window_name].show()
+        print(f"Video shown in {window_name}: {video_path}")  # 動画表示のログ出力
+
+
+
+
+    def handle_error(self, error):
+        print(f"Media player error: {self.media_player.errorString()}")
+
+
+
+
+
 
             
     def create(self):
@@ -309,18 +317,18 @@ class CreateWindows(QWidget):
         for i, window_name in enumerate(["subtitle", "explanation"]):
             # ウィンドウ作成時に画像を表示
             if window_name == "subtitle":
-                # image_path = self.default_subtitle_image_path  # 対応する画像パスを取得
                 image_path = self.frame_data_list[1].subtitle_image_path  # 対応する画像パスを取得
                 image_width, image_height = Image.open(image_path).size
                 image_width, image_height = image_width + 10, image_height + 10
             elif window_name == "explanation":
                 # image_path = self.frame_data_list[1].explanation_image_path  # 対応する画像パスを取得
-                # print(f"🌟 画像表示: {image_path}=========\n")
-                image_path = self.default_explanation_image_path  # 対応する画像パスを取得
+                image_path = r"Asset\tmpq9fc1jl_.png"  # 対応する画像パスを取得
                 image_width, image_height = Image.open(image_path).size
                 image_width, image_height = image_width + 10, image_height + 10
 
             graphics_view = QtWidgets.QGraphicsView()
+            graphics_view.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)  # ビューポート更新モードを設定
+
             scene = QtWidgets.QGraphicsScene()
             graphics_view.setScene(scene)
             # ウィンドウタイトルを削除
@@ -334,3 +342,11 @@ class CreateWindows(QWidget):
             # QGraphicsViewを辞書に保存
             self.windows[window_name] = graphics_view 
             # self.show_image(window_name, image_path) #画像を表示
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    # create_windows = CreateWindows()
+    # create_windows.create()
+    # sys.exit(app.exec_())
+
+
