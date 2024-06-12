@@ -10,6 +10,6 @@ gif_path = "Asset/sample_video.gif"
 clip = VideoFileClip(video_path)
 
 # 動画をGIFに変換
-clip.write_gif(gif_path, fps=16)
+clip.write_gif(gif_path, fps=12)
 
 print(f"GIF saved to: {gif_path}")

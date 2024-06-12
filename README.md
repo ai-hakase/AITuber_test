@@ -5,6 +5,7 @@
 ## 最終的な出力イメージ
 
 ![sample_video](Asset/chrome-capture-2024-6-12.gif)
+<!-- ![sample_video](Asset/sample_video.gif) -->
 
 ## スクリーンショット
 
