@@ -8,7 +8,7 @@ import re
 
 from datetime import datetime
 from PIL import Image
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication, QWidget
 from moviepy.editor import ImageClip, VideoFileClip, CompositeVideoClip, ColorClip
 
 from render import FrameData
@@ -57,46 +57,16 @@ class Timeline:
         self.previous_video_duration = 0# 前の動画の長さ
 
 
-    def setup_media_and_shortcut_keys(self):
-        total_time = 0
-        for frame_data in self.frame_data_list:
-
-            # 各フレームの開始時間と終了時間を設定
-            frame_data.start_time = total_time
-            data, samplerate = librosa.load(frame_data.audio_file)
-            audio_duration = librosa.get_duration(y=data, sr=samplerate)
-            audio_duration = int(audio_duration * 1000)
-            frame_data.audio_duration = audio_duration
-            frame_data.end_time = total_time + audio_duration  # ミリ秒に変換
-            # total_time = frame_data.end_time
-
-            # ショートカットキーの入力
-            # self.hotkeys から Name がemotion_shortcut_key と motion_shortcut_key と一致するhotkeyIDを取得 -> 各リストに複数のキーが入っている
-            # frame_data.emotion_shortcut -> ユーザーが選んだショートカットキーの名前
-            if frame_data.emotion_shortcut:
-                emotion_shortcut_key_ID = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.emotion_shortcut]
-            else:
-                emotion_shortcut_key_ID = None
-            if frame_data.motion_shortcut:
-                motion_shortcut_key_ID = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.motion_shortcut]
-            else:
-                motion_shortcut_key_ID = None
-
-            # ショートカットキーのIDをリストに格納
-            frame_data.emotion_shortcut = emotion_shortcut_key_ID
-            frame_data.motion_shortcut = motion_shortcut_key_ID
-
-
     # タイムラインの作成
     async def create(self):
 
         # OBS Studio に接続
         await self.obs_controller.connect()
-        # VTS　API　接続
-        await self.hotkey_trigger.connect()
 
-        # ショートカットキーの取得
+        # Vショートカットキーの取得
+        await self.hotkey_trigger.connect()
         self.hotkeys = await self.hotkey_trigger.get_hotkeys()
+        await self.hotkey_trigger.disconnect()
 
         # 音声ファイルと画像リストとショートカットキーの準備
         self.setup_media_and_shortcut_keys()
@@ -139,6 +109,42 @@ class Timeline:
         await self.obs_controller.disconnect()
 
         return self.output_file_path  # 文字列として返す
+
+    def setup_media_and_shortcut_keys(self):
+        total_time = 0
+        for frame_data in self.frame_data_list:
+
+            # 各フレームの開始時間と終了時間を設定
+            frame_data.start_time = total_time
+            data, samplerate = librosa.load(frame_data.audio_file)
+            audio_duration = librosa.get_duration(y=data, sr=samplerate)
+            audio_duration = int(audio_duration * 1000)
+            frame_data.audio_duration = audio_duration
+            frame_data.end_time = total_time + audio_duration  # ミリ秒に変換
+            # total_time = frame_data.end_time
+
+            # ショートカットキーの入力
+            # self.hotkeys から Name がemotion_shortcut_key と motion_shortcut_key と一致するhotkeyIDを取得 -> 各リストに複数のキーが入っている
+            # frame_data.emotion_shortcut -> ユーザーが選んだショートカットキーの名前
+            if frame_data.emotion_shortcut:
+                emotion_shortcut_key_ID = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.emotion_shortcut]
+                emotion_shortcut_key_ID = emotion_shortcut_key_ID[0]
+                print("感情ショートカット", emotion_shortcut_key_ID)
+            else:
+                emotion_shortcut_key_ID = None
+            if frame_data.motion_shortcut:
+                motion_shortcut_key_ID = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.motion_shortcut]
+                motion_shortcut_key_ID = motion_shortcut_key_ID[0]
+                print("動作ショートカット", motion_shortcut_key_ID)
+            else:
+                motion_shortcut_key_ID = None
+
+            # ショートカットキーのIDをリストに格納
+            frame_data.emotion_shortcut = emotion_shortcut_key_ID
+            frame_data.motion_shortcut = motion_shortcut_key_ID
+
+
+
     
 
     def trim_video(self, input_path, output_path, start_time):

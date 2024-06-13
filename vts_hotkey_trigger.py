@@ -192,6 +192,8 @@ class VTubeStudioHotkeyTrigger:
             }
         }
 
+        # print("hotkey_id", hotkey_id)
+
         try:
             await self.websocket.send(json.dumps(request))
             response = await self.websocket.recv()
