@@ -76,15 +76,16 @@ class CreateWindows(QWidget):
 
         self.create()
         self.load_media(0)  # 最初の音声ファイルをロード
-        self.show_image("subtitle", frame_data_list[0].subtitle_image_path, is_subtitle=True)  # 初期画像を表示
-        # self.show_image("subtitle", self.default_subtitle_image_path, is_subtitle=True)  # 初期画像を表示
-        explanation_image_path = frame_data_list[0].explanation_image_path
+        self.show_image("subtitle", self.default_subtitle_image_path, is_subtitle=True)  # 初期画像を表示
+        self.show_image("explanation", self.default_explanation_image_path)
 
-        if explanation_image_path.endswith(('.mp4', '.avi', '.mov')):  # 動画ファイルの拡張子をチェック
-            self.show_video("explanation", explanation_image_path)
-        else:
-            self.show_image("explanation", explanation_image_path)
-        # self.show_image("explanation", self.default_explanation_image_path)
+        # self.show_image("subtitle", frame_data_list[0].subtitle_image_path, is_subtitle=True)  # 初期画像を表示
+        # explanation_image_path = frame_data_list[0].explanation_image_path
+
+        # if explanation_image_path.endswith(('.mp4', '.avi', '.mov')):  # 動画ファイルの拡張子をチェック
+        #     self.show_video("explanation", explanation_image_path)
+        # else:
+        #     self.show_image("explanation", explanation_image_path)
 
 
         # 利用可能なオーディオデバイスの一覧を表示

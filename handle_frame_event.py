@@ -263,8 +263,6 @@ class HandleFrameEvent:
         if not os.path.exists(output_folder_input):
             os.makedirs(output_folder_input)
         output_file_path = os.path.join(output_folder_input, "output-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".mp4")
-        # print(f"output_file_path: {output_file_path}")
-
         create_video = CreateVideo(frame_data_list_state, output_file_path, background_video_file_input)
         output_file_path = await create_video.create_video_run()
 
@@ -274,8 +272,8 @@ class HandleFrameEvent:
         # task.add_done_callback(lambda t: self.on_video_creation_complete(t, selected_index, frame_data_list))
         # await create_video.create_video_run()
 
-        print(f"output_file_path -> {output_file_path}")
-        print(f"result -> {result}")
+        # print(f"output_file_path -> {output_file_path}")
+        # print(f"result -> {result}")
 
         # if result is not None:
         #     (

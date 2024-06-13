@@ -4,6 +4,7 @@ import librosa
 import sounddevice as sd
 import json
 import subprocess
+import re
 
 from datetime import datetime
 from PIL import Image
@@ -111,23 +112,26 @@ class Timeline:
 
 
         if response:  # responseが空でないことを確認
-            try:
-                # response = json.loads(response)  # ここで文字列を辞書に変換
-                print(f"response: {response}")
-                print(f"response: {type(response)}")
-                # self.output_file_path = response.outputPath
-                # self.output_file_path = response['outputPath']
-                # print(f"response: {self.output_file_path }")
 
-                # output_path = response.responseData["outputPath"]
-                # print(output_path)  # -> 'C:/Users/okozk/Videos/2024-06-11 08-25-13.mp4'
+            # 正規表現でパスを抽出
+            response = str(response)
+            match = re.search(r"'outputPath':\s*'([^']+)'", response)
 
-            except json.JSONDecodeError as e:
-                print(f"JSONデコードエラー: {e}")
+            if match:
+                obs_output_path = match.group(1)
+                self.output_file_path = obs_output_path
+
+                # print(f"output_path {obs_output_path}")  # C:/Users/okozk/Videos/2024-06-13 08-41-40.mp4
+
+                # トリミングの実行
+                # self.trim_video(obs_output_path, self.output_file_path, start_time = 0.05)
+
+            else:
+                print("パスが見つかりませんでした。")
+
         else:
             print("responseが空です。")
 
-        # self.output_file_path = response['outputPath']
 
         # VTS　API　切断
         await self.hotkey_trigger.disconnect()
@@ -135,3 +139,51 @@ class Timeline:
         await self.obs_controller.disconnect()
 
         return self.output_file_path  # 文字列として返す
+    
+
+    def trim_video(self, input_path, output_path, start_time):
+        """
+        ffmpeg を使用して動画を指定された開始時間と長さでトリミングする関数
+        """
+        # 絶対パスに変換する
+        input_path = os.path.abspath(input_path)
+        output_path = os.path.abspath(output_path)
+
+        # ffmpeg の形式に変換する
+        input_path = input_path.replace("\\", "/")
+        output_path = output_path.replace("\\", "/")
+
+        print(f"input_path: {input_path}\n")
+        print(f"output_file_path: {output_path}\n")
+
+
+        # input_path: C:/Users/okozk/Videos/2024-06-13 09-00-05.mp4
+        # output_file_path: C:\Users\okozk\Test\Gradio\outputs\output-2024-06-13-09-47-44.mp4
+
+        # output_path-------: C:/Users/okozk/Videos/2024-06-13 09-47-06.mp4
+        # output_file_path: C:/Users/okozk/Test/Gradio/outputs/output-2024-06-13-09-47-04.mp4
+
+
+        # 動画の長さを取得
+        result = subprocess.run(["ffmpeg", "-i", input_path], stderr=subprocess.PIPE, text=True)
+        duration_match = re.search(r"Duration:\s*(\d{2}):(\d{2}):(\d{2})\.(\d{2})", result.stderr)
+        if duration_match:
+            hours, minutes, seconds, milliseconds = map(int, duration_match.groups())
+            total_seconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 100
+        # else:
+        #     raise ValueError("動画の長さを取得できませんでした")
+
+        # トリミングの実行 (最初の0.1秒から先をすべて保存)
+        duration = total_seconds - start_time
+
+        command = [
+            "ffmpeg",
+            "-i", input_path,
+            "-ss", str(start_time),  # 開始時間
+            "-t", str(duration),      # トリミングの長さ
+            "-c:v", "libx264",        # ビデオコーデック（必要に応じて変更）
+            "-c:a", "aac",            # オーディオコーデック（必要に応じて変更）
+            "-y", output_path         # 上書き保存
+        ]
+
+        subprocess.run(command)
