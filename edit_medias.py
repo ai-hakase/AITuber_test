@@ -125,6 +125,10 @@ class EditMedia:
     # 字幕画像の生成   
     def generate_subtitle(self, subtitle_line, preview_width, preview_height):
 
+        # 調整する値
+        size_adjustment = 0
+        # size_adjustment = 200
+
         # 字幕用の画像を読み込む
         img = Image.open(self.subtitle_image_path)
         d = ImageDraw.Draw(img)
@@ -160,7 +164,7 @@ class EditMedia:
         # 計算された位置にテキストを描画
         d.multiline_text((draw_x, draw_y), wrapped_text, fill=(0, 0, 0), font=font, align='center', spacing=20)
 
-        subtitle_img = self.resize_image_aspect_ratio(img, preview_width, preview_height)#リサイズ
+        subtitle_img = self.resize_image_aspect_ratio(img, preview_width-size_adjustment, preview_height)#リサイズ
 
         # グリーンバック画像を生成 -> 1920x1080
         subtitle_with_green_background = Image.new('RGB', (preview_width, preview_height), (0, 255, 0))
@@ -169,8 +173,8 @@ class EditMedia:
         subtitle_width, subtitle_height = subtitle_img.size
 
         # 字幕画像を下部中央に配置するための座標を計算
-        x = (subtitle_with_green_background.width - subtitle_width) // 2  # 横方向の中央
-        y = subtitle_with_green_background.height - subtitle_height       # 下部に配置
+        x = (subtitle_with_green_background.width - subtitle_width) // 2 + size_adjustment //2 # 横方向の中央
+        y = subtitle_with_green_background.height - subtitle_height # 下部に配置
 
         # グリーンバック画像に字幕画像を貼り付け
         subtitle_with_green_background.paste(subtitle_img, (x, y), mask=subtitle_img)

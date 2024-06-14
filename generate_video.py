@@ -50,7 +50,7 @@ class GenerateVideo:
         self.scene_name = "AI_Tuber_test"
 
     # プレビュー画像を生成する関数
-    def generate_preview_image(self, background_video_file_input, 
+    async def generate_preview_image(self, background_video_file_input, 
                                explanation_image_path, whiteboard_image_path, subtitle_image_path, 
                                vtuber_character_path, background_image_path=None):
 
@@ -77,6 +77,12 @@ class GenerateVideo:
         # Vキャラ画像を読み込む
         vtuber_img = Image.open(vtuber_character_path).convert("RGBA")  # RGBAモードに変換
         # vtuber_img = process_transparentize_green_back(vtuber_img) # グリーンスクリーンを透明にする
+
+        # Vキャラ画像を生成(　→　背景含む全体
+        v_cat_img = await self.edit_medias.create_obs_screenshot_image("V_cat")
+        # v_cat_img_path = save_as_temp_file(v_cat_img)
+
+
 
         # # ホワイトボード画像を読み込む
         # whiteboard_img = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
@@ -129,6 +135,9 @@ class GenerateVideo:
         
         # subtitle_imgをクロマキー処理 -> 字幕を合成
         self.preview.paste(subtitle_img, (0, 0), mask=subtitle_img)
+
+        # Vキャラ画像を合成
+        self.preview.paste(v_cat_img, (0, 0), mask=v_cat_img)
 
         # プレビュー画像を保存
         preview_image_path = save_as_temp_file(self.preview)
@@ -242,7 +251,7 @@ class GenerateVideo:
             # explanation_image_path = save_as_temp_file(green_explanation_img)
 
             # プレビュー画像を生成
-            preview_image = self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path, background_image_path)
+            preview_image = await self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path, background_image_path)
 
             # フレームデータの生成とリストへの保存
             frame_data = FrameData(
