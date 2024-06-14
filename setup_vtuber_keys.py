@@ -86,8 +86,9 @@ class SetupVtuberKeys:
             # self.last_motion_shortcut[self.main_character] = motion_shortcut
 
         else:
-            selected_emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
-            selected_motion_shortcut = actions[WAITING]
+            # selected_emotion_shortcut = emotion_shortcuts.get('anticipation、期待')
+            selected_emotion_shortcut = None
+            motion_shortcut = actions[WAITING]
             # motion_shortcut = self.press_random_key(actions[WAITING], self.last_motion_shortcut["other"])
             # self.last_motion_shortcut["other"] = motion_shortcut
 

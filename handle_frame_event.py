@@ -263,6 +263,8 @@ class HandleFrameEvent:
         if not os.path.exists(output_folder_input):
             os.makedirs(output_folder_input)
         output_file_path = os.path.join(output_folder_input, "output-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".mp4")
+
+        # 動画作成
         create_video = CreateVideo(frame_data_list_state, output_file_path, background_video_file_input)
         output_file_path = await create_video.create_video_run()
 

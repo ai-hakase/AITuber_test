@@ -123,25 +123,28 @@ class Timeline:
             frame_data.end_time = total_time + audio_duration  # ミリ秒に変換
             # total_time = frame_data.end_time
 
-            # ショートカットキーの入力
-            # self.hotkeys から Name がemotion_shortcut_key と motion_shortcut_key と一致するhotkeyIDを取得 -> 各リストに複数のキーが入っている
-            # frame_data.emotion_shortcut -> ユーザーが選んだショートカットキーの名前
+            # print("\n-----------")
+            # print(f"frame_data.emotion_shortcut: {frame_data.emotion_shortcut}")
+            # print(f"frame_data.motion_shortcut: {frame_data.motion_shortcut}")
+
+            # 感情ショートカットキーの入力
             if frame_data.emotion_shortcut:
                 emotion_shortcut_key_ID = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.emotion_shortcut]
-                emotion_shortcut_key_ID = emotion_shortcut_key_ID[0]
-                print("感情ショートカット", emotion_shortcut_key_ID)
+                if len(emotion_shortcut_key_ID) > 0:
+                    frame_data.emotion_shortcut = emotion_shortcut_key_ID[0]
             else:
-                emotion_shortcut_key_ID = None
+                frame_data.emotion_shortcut = None
+
+            # 動作ショートカットキーの入力
             if frame_data.motion_shortcut:
                 motion_shortcut_key_ID = [hotkey['hotkeyID'] for hotkey in self.hotkeys if hotkey['name'] in frame_data.motion_shortcut]
-                motion_shortcut_key_ID = motion_shortcut_key_ID[0]
-                print("動作ショートカット", motion_shortcut_key_ID)
+                if len(motion_shortcut_key_ID) > 0:
+                    frame_data.motion_shortcut = motion_shortcut_key_ID[0]
             else:
-                motion_shortcut_key_ID = None
+                frame_data.motion_shortcut = None
 
-            # ショートカットキーのIDをリストに格納
-            frame_data.emotion_shortcut = emotion_shortcut_key_ID
-            frame_data.motion_shortcut = motion_shortcut_key_ID
+            # print("感情ショートカット:", frame_data.emotion_shortcut)
+            # print("動作ショートカット:", frame_data.motion_shortcut)
 
 
 

@@ -37,8 +37,8 @@ class AsyncioThread(QThread):
 
         # VTS　API　接続
         await self.vts_hotkey_trigger.connect()
-        print("感情ショートカット", frame_data.emotion_shortcut)
-        print("動作ショートカット", frame_data.motion_shortcut)
+        # print("感情ショートカット", frame_data.emotion_shortcut)
+        # print("動作ショートカット", frame_data.motion_shortcut)
 
         # emotion_shortcut と motion_shortcut を引数のショートカットキーを渡してAPIでトリガーする処理
         if frame_data.emotion_shortcut is not None:
@@ -75,25 +75,23 @@ class CreateWindows(QWidget):
         # 既存の初期化コード
         self.video_shown = False  # 動画が最初に表示されたかどうかを管理するフラグ
         self.last_video_path = None  # 最後に表示した動画のパスを記憶する変数
+
+        # 現在のフレームインデックス
         self.current_frame_index = 0
 
         # 利用可能なオーディオデバイスの一覧を取得
-        selected_device = self.select_audio_device()
-
-        # QAudioOutputを作成し、選択したオーディオデバイスを設定
-        self.audio_output = QAudioOutput(selected_device)
-        print(f"🌟 オーディオデバイスを設定: {self.audio_output}")
-
+        self.character_audio_outputs = []  # キャラクター名とオーディオデバイスの対応を保持する辞書
+        self.character1 = "葉加瀬あい"
+        self.character2 = "らむ"
+        self.select_audio_device()
+        
         # QMediaPlayerにQAudioOutputを設定
         self.media_player = QMediaPlayer()
-        self.media_player.setAudioOutput(self.audio_output)
+        self.set_current_audio_output(self.current_frame_index)
 
         # 再生させるオーディオファイルをメディアプレイヤーにセット
         audio_file_url = QUrl.fromLocalFile(frame_data_list[0].audio_file)
         self.media_player.setSource(audio_file_url)
-        
-        # 音量を設定
-        self.audio_output.setVolume(0.5)  # 0.0から1.0の範囲で設定
 
         self.media_player.mediaStatusChanged.connect(self.handle_state_changed)  # 状態遷移を監視
 
@@ -102,6 +100,47 @@ class CreateWindows(QWidget):
         # self.update_images()
         self.show_image("subtitle", self.default_subtitle_image_path, is_subtitle=True)  # 初期画像を表示
         self.show_image("explanation", self.default_explanation_image_path)
+
+
+
+    def select_audio_device(self):
+        # 利用可能なオーディオデバイスの一覧を取得
+        devices = QMediaDevices.audioOutputs()
+
+        for frame_data in self.frame_data_list:
+            character_name = frame_data.character_name
+
+            # キャラクター名に応じて target_device_name を設定
+            if character_name == self.character1:
+                target_device_name = "CABLE-A Input (VB-Audio Cable A)"
+            elif character_name == self.character2:
+                target_device_name = "CABLE-B Input (VB-Audio Cable B)"
+            else:
+                print(f"Unknown character name: {character_name}")  # エラーログ出力
+                continue  # 次のキャラクターへ
+
+            # デバイス一覧から検索
+            selected_device = None
+            for device in devices:
+                if device.description() == target_device_name:
+                    selected_device = device
+                    print(f"🌟 オーディオデバイスを選択: {selected_device.description()}")
+                    break
+            if selected_device is None:
+                raise ValueError("指定されたオーディオデバイスが見つかりません")
+    
+            # QAudioOutputを作成し、選択したオーディオデバイスを設定
+            audio_output = QAudioOutput(selected_device)
+            # 音量を設定
+            audio_output.setVolume(0.5)  # 0.0から1.0の範囲で設定
+
+            self.character_audio_outputs.append(audio_output)
+
+
+    def set_current_audio_output(self, index):
+        audio_output = self.character_audio_outputs[index]
+        self.media_player.setAudioOutput(audio_output)
+
 
 
     def start(self):
@@ -113,23 +152,6 @@ class CreateWindows(QWidget):
     def load_media(self, index):
         audio_file_url = QUrl.fromLocalFile(self.frame_data_list[index].audio_file)
         self.media_player.setSource(audio_file_url)        
-
-
-    def select_audio_device(self):
-        # 利用可能なオーディオデバイスの一覧を取得
-        devices = QMediaDevices.audioOutputs()
-        selected_device = None
-        for device in devices:
-            target_device_name = "CABLE-A Input (VB-Audio Cable A)"
-            # target_device_name = "CABLE Input (VB-Audio Virtual Cable)"
-            if device.description() == target_device_name:
-                selected_device = device
-                print(f"🌟 オーディオデバイスを選択: {selected_device.description()}")
-                break
-        if selected_device is None:
-            raise ValueError("指定されたオーディオデバイスが見つかりません")
-        
-        return selected_device
 
 
     def handle_state_changed(self, status):
@@ -151,6 +173,7 @@ class CreateWindows(QWidget):
 
             # 次のフレームの情報を取得
             if self.current_frame_index < len(self.frame_data_list):
+                self.set_current_audio_output(self.current_frame_index)
                 self.load_media(self.current_frame_index)  # 次の音声ファイルをロード
                 self.media_player.play()
             else:
