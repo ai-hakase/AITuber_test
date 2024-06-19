@@ -1,6 +1,6 @@
 import os
 
-TALK_CHARACTER = "〇〇"
+TALK_CHARACTER = "葉加瀬あい"
 TALKING = "話し方"
 BAYBAY = "バイバイ"
 WAITING = "待機"

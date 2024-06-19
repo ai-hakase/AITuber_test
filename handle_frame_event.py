@@ -199,17 +199,17 @@ class HandleFrameEvent:
 
 
     # 動画作成ボタンがクリックされたときの処理
-    def create_video(self, output_folder_input, bgm_file_input, background_video_file_input,
+    async def create_video(self, output_folder_input,
                            character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                           selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                           image_video_input, whiteboard_image_path, 
+                           selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                           image_video_input, whiteboard_image_path, preview_images, 
                            selected_index, frame_data_list_state: list[FrameData]):
                            
-        # result = None
+        result = None
         result = self.on_update_reading_click(
                                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                                 selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                                image_video_input, whiteboard_image_path,  
+                                image_video_input, whiteboard_image_path, 
                                 selected_index, frame_data_list_state
                                 )
 
@@ -218,35 +218,32 @@ class HandleFrameEvent:
             os.makedirs(output_folder_input)
         output_file_path = os.path.join(output_folder_input, "output-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".mp4")
 
+
         # 動画作成
-        create_video = CreateVideo(frame_data_list_state, output_file_path, background_video_file_input)
-        output_file_path = create_video.create_video_run()
+        create_video = CreateVideo(frame_data_list_state, output_file_path)
 
-        # 別スレッドで実行
-        # task = asyncio.create_task(create_video.create_video_run())
-        # task.add_done_callback(lambda t: print("動画の作成が完了しました"))
-        # task.add_done_callback(lambda t: self.on_video_creation_complete(t, selected_index, frame_data_list))
-        # await create_video.create_video_run()
+        output_file_path = await create_video.create_video_run()
 
-        # print(f"output_file_path -> {output_file_path}")
+
+        if result is not None:
+            (
+                character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                image_video_input, whiteboard_image_path, preview_images, 
+                selected_index, frame_data_list_state
+            ) = result
+
+        await asyncio.sleep(3)
+
         # print(f"result -> {result}")
+        # print(f"current_frame_data -> {current_frame_data}")
 
-        # if result is not None:
-        #     (
-        #         character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-        #         selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-        #         image_video_input, whiteboard_image_path, preview_images, 
-        #         selected_index, frame_data_list_state
-        #     ) = result
-
-        # # print(f"result -> {result}")
-        # # print(f"current_frame_data -> {current_frame_data}")
-
-        # return (
-        #     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-        #     selected_model_tuple_state, None, emotion_dropdown, motion_dropdown, 
-        #     None, whiteboard_image_path, None, 
-        #     selected_index, frame_data_list_state, 
-        #     gr.update(value=output_file_path, visible=True) 
-        # ) 
+        return (
+            character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+            selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+            image_video_input, whiteboard_image_path, preview_images, 
+            selected_index, frame_data_list_state, 
+            # gr.update(value=output_file_path, visible=False) 
+            gr.update(value=output_file_path, visible=True) 
+        ) 
     

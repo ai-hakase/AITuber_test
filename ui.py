@@ -187,8 +187,14 @@ class UI:
                             new_settings_name_input = gr.Textbox(label="新規設定ファイル名")
                             save_new_settings_button = gr.Button("新規設定ファイル保存")
 
-
             with gr.Row():
+                with gr.Column(scale=1):
+                    test_playback_button = gr.Audio(type="filepath", label="テスト再生")
+                    preview_images = gr.Gallery(
+                        label="画像/動画フレーム一覧", 
+                        elem_id="frame_gallery", 
+                        # scale=2,
+                        )
                     
                 with gr.Column():
                     with gr.Tab("テキスト・画像・動画編集"):
@@ -245,15 +251,6 @@ class UI:
                         #         allow_flagging="never",  # Flagボタンを非表示にする
                         #     )
                         #     vtuber_character_update_button = gr.Button("変更", scale=1)
-
-                with gr.Column(scale=1):
-                    test_playback_button = gr.Audio(type="filepath", label="テスト再生")
-                    preview_images = gr.Gallery(
-                        label="画像/動画フレーム一覧", 
-                        elem_id="frame_gallery", 
-                        # scale=2,
-                        )
-
             with gr.Row():
                 with gr.Column(scale=4):
                     video_preview_output = gr.Video(label="生成された動画のプレビュー", visible=False)
@@ -372,11 +369,11 @@ class UI:
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
-                # show_progress=True,
-            # ).then(
-            #     fn=self.handle_frame_event.setup_frame_data_list,
-            #     inputs=[],
-            #     outputs=[generate_video_button, create_video_button]
+                show_progress=True,
+            ).then(
+                fn=self.handle_frame_event.setup_frame_data_list,
+                inputs=[],
+                outputs=[generate_video_button, create_video_button]
             )
 
             # frame_data_list_state.change(
@@ -393,18 +390,19 @@ class UI:
                 inputs=[
                     output_folder_input, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
-                outputs=[
-                    ],
                 # outputs=[
-                #     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                #     selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                #     image_video_input, whiteboard_image_path, preview_images, 
-                #     selected_index, frame_data_list_state, video_preview_output
                 #     ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state, 
+                    video_preview_output
+                    ],
                 show_progress=True,
             )
 

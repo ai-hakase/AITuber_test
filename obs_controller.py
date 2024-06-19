@@ -32,6 +32,9 @@ class OBSController:
         self.websocket = obswebsocket.obsws(self.websocket_uri, self.port, self.password)
         self.websocket.connect()
 
+        # # イベントを購読
+        # self.websocket.register(self.on_event2)
+
 
     async def connect(self):
         # self.websocket = await websockets.connect(self.websocket_uri)
@@ -281,6 +284,14 @@ class OBSController:
         request = requests.SetSceneItemTransform(sceneName=scene_name, sceneItemId=scene_item_id, sceneItemTransform=scene_item_transform)
         response = self.websocket.call(request)
         return response
+
+
+    # def on_event2(self, event):
+    #     if event.name == "MediaInputPlaybackStarted":
+    #         # input_name = event.inputName
+    #         # input_uuid = event.inputUuid
+    #         print(f"Media input '{event}' started playing.")
+    #         # print(f"Media input '{input_name}' ({input_uuid}) started playing.")
 
 
     async def run(self):
