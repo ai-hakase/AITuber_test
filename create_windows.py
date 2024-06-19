@@ -124,7 +124,7 @@ class CreateWindows(QWidget):
             for device in devices:
                 if device.description() == target_device_name:
                     selected_device = device
-                    print(f"🌟 オーディオデバイスを選択: {selected_device.description()}")
+                    # print(f"🌟 オーディオデバイスを選択: {selected_device.description()}")
                     break
             if selected_device is None:
                 raise ValueError("指定されたオーディオデバイスが見つかりません")
@@ -213,7 +213,7 @@ class CreateWindows(QWidget):
             pixmap_item.setOffset((view_width - pixmap.width()) / 2, (view_height - pixmap.height()) / 2)
 
             self.windows[window_name].show()
-            print(f"Image shown in {window_name}: {image_path}")
+            # print(f"Image shown in {window_name}: {image_path}")
         else:
             print(f"Error loading image: {image_path}")
 

@@ -108,25 +108,6 @@ class OBSController:
         """
         await self.connect()
 
-        # # スクリーンショットのリクエスト
-        # request = obswebsocket.requests.GetSourceScreenshot(sourceName=source_name, imageFormat="png")
-        # response = self.websocket.call(request)
-
-        # # レスポンスから画像データを抽出
-        # image_data_base64 = response.getImageData()
-
-        # # パディングを追加
-        # missing_padding = len(image_data_base64) % 4
-        # if missing_padding:
-        #     image_data_base64 += '=' * (4 - missing_padding)
-
-        # image_data = base64.b64decode(image_data_base64)
-
-        # # 一時ファイルに保存
-        # with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
-        #     temp_file.write(image_data)
-        #     file_path = temp_file.name
-
         # タイムスタンプを追加
         file_path = f"{file_path}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.png"
 
@@ -142,7 +123,164 @@ class OBSController:
         return file_path
 
 
+    async def get_current_program_scene(self):
+        """現在のプログラムシーンを取得する
 
+        Returns:
+            str: 現在のプログラムシーン
+        """
+        request = requests.GetCurrentProgramScene()
+        response = self.websocket.call(request)
+        return response
+
+
+
+    async def get_input_list(self):
+        """インプットのリストを取得する
+
+        Returns:
+            list: インプットリスト
+        """
+        request = requests.GetInputList()
+        response = self.websocket.call(request)
+        response_data = response.datain
+        input_list = []
+
+        for input_data in response_data.get("inputs"):
+            inputName = input_data.get('inputName')
+            inputKind = input_data.get('inputKind')
+            inputUuid = input_data.get('inputUuid')
+            input_list.append((inputName, inputKind, inputUuid))  # タプルとしてリストに追加
+
+        return input_list
+
+
+
+    async def get_input_settings(self, inputName):
+        """インプットの設定を取得する
+
+        Args:
+            inputName (str): インプット名
+
+        Returns:
+            str: インプット設定
+        """
+        request = requests.GetInputSettings(inputName=inputName)
+        response = self.websocket.call(request)
+        return response
+
+
+    async def set_input_settings(self, inputName, inputSettings):
+        """インプットの設定を変更する
+
+        Args:
+            inputName (str): インプット名
+            inputSettings (dict): インプット設定
+
+        Returns:
+            str: インプットUUID
+        """
+        request = requests.SetInputSettings(
+            inputName=inputName, 
+            inputSettings=inputSettings, 
+            overlay=True
+            )
+        response = self.websocket.call(request)
+        return response
+
+
+    async def set_scene_item_enabled(self, scene_name, scene_item_id, sceneItemEnabled):
+        """シーンアイテムの有効/無効を設定する
+
+        Args:
+            scene_name (str): シーン名
+            scene_item_id (int): シーンアイテムID
+            enabled (bool): 有効かどうか
+        """
+        request = requests.SetSceneItemEnabled(sceneName=scene_name, sceneItemId=scene_item_id, sceneItemEnabled=sceneItemEnabled)
+        response = self.websocket.call(request)
+        return response
+
+
+    async def create_input(self, scene_name, input_name, input_kind):
+        """シーンにインプットを作成する
+
+        Args:
+            scene_name (str): シーン名
+            input_name (str): インプット名
+            input_kind (str): インプットタイプ
+
+        Returns:
+            str: インプットUUID
+            int: シーンアイテムID
+        """
+        request = requests.CreateInput(sceneName=scene_name, inputName=input_name, inputKind=input_kind)
+        response = self.websocket.call(request)
+        response_data = response.datain
+        input_uuid = response_data.get('inputUuid')
+        scene_item_id = response_data.get('sceneItemId')
+        return input_uuid, scene_item_id
+
+
+    async def get_scene_item_list(self, scene_name):
+        """シーンアイテムのリストを取得する
+
+        Args:
+            scene_name (str): シーン名
+
+        Returns:
+            list: シーンアイテムリスト
+        """
+        request = requests.GetSceneItemList(sceneName=scene_name)
+        response = self.websocket.call(request)
+        return response
+
+
+    async def get_scene_item_id(self, scene_name, sourceName):
+        """シーンアイテムのIDを取得する
+
+        Args:
+            scene_name (str): シーン名
+            sourceName (str): ソース名
+
+        Returns:
+            int: シーンアイテムID
+        """
+        request = requests.GetSceneItemId(sceneName=scene_name, sourceName=sourceName)
+        response = self.websocket.call(request)
+        response_data = response.datain
+        scene_item_id = response_data.get('sceneItemId')
+        return scene_item_id
+
+
+    async def get_scene_item_transform(self, scene_name, scene_item_id):
+        """シーンアイテムのトランスフォームを取得する
+
+        Args:
+            scene_name (str): シーン名
+            scene_item_id (int): シーンアイテムID
+
+        Returns:
+            dict: シーンアイテムトランスフォーム
+        """
+        request = requests.GetSceneItemTransform(sceneName=scene_name, sceneItemId=scene_item_id)
+        response = self.websocket.call(request)
+        response_data = response.datain
+        scene_item_transform = response_data.get('sceneItemTransform')
+        return scene_item_transform
+
+
+    async def set_scene_item_transform(self, scene_name, scene_item_id, scene_item_transform):
+        """シーンアイテムのトランスフォームを変更する
+
+        Args:
+            scene_name (str): シーン名
+            scene_item_id (int): シーンアイテムID
+            scene_item_transform (dict): シーンアイテムトランスフォーム
+        """
+        request = requests.SetSceneItemTransform(sceneName=scene_name, sceneItemId=scene_item_id, sceneItemTransform=scene_item_transform)
+        response = self.websocket.call(request)
+        return response
 
 
     async def run(self):

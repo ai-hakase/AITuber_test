@@ -11,11 +11,11 @@ class FrameData:
     audio_file: str
     emotion_shortcut: str
     motion_shortcut: str
-    explanation_image_path: str
+    explanation_media_path: str
     whiteboard_image_path: str
     subtitle_image_path: str
     preview_image: str
     audio_duration: float = 0.0,
     frame_clips = None,
     bgm_path: str = None,
-    background_video_path: str = None,
+    background_media_path: str = None,

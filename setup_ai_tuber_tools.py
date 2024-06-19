@@ -51,8 +51,9 @@ class StyleBertVITS2API:
         """APIを起動する"""
         cd = SBV2_DIR
         os.chdir(cd)
+        # 失敗したら Initialize.bat
         subprocess.Popen([self.python_exe, "server_fastapi.py"])
-
+        # subprocess.Popen(r"Server.bat")
 
 def is_process_running(process_name):
     output = subprocess.check_output(['tasklist', '/FI', f'IMAGENAME eq {process_name}'], encoding='cp932')

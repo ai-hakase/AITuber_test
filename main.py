@@ -21,11 +21,11 @@ from setup_ai_tuber_tools import StyleBertVITS2API
 
 
 
-async def main():
-    ui = UI()
+def main():
+# async def main():
     sbv2_api = StyleBertVITS2API()
 
-    loop = asyncio.get_event_loop()
+    # loop = asyncio.get_event_loop()
 
     # Style-Bert-VITS2のAPIが実行中かどうかを確認
     if sbv2_api.check_port():
@@ -42,19 +42,30 @@ async def main():
     # activateスクリプトを実行
     subprocess.run([activator], shell=True)
 
+    ui = UI()
+    ui.create_ui()
 
-    try:
-        # loop.run_until_complete(ui.create_ui())
-        loop.run_until_complete(await ui.create_ui())
+    # # イベントループが既に実行中かどうかを確認
+    # if not loop.is_running():
+    #     # 実行中でない場合、新しいイベントループを実行
+    #     asyncio.run(main())
+    # else:
+    #     # 実行中の場合、既存のイベントループでコルーチンを実行
+    #     loop.create_task(main())
+
+    # try:
+    #     # loop.run_until_complete(ui.create_ui())
+    #     loop.run_until_complete(await ui.create_ui())
         
-    except ConnectionResetError as e:
-        # 無視して処理を続ける
-        pass
+    # except ConnectionResetError as e:
+    #     # 無視して処理を続ける
+    #     pass
 
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
+    # finally:
+    #     loop.run_until_complete(loop.shutdown_asyncgens())
+    #     loop.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run()
+    main()

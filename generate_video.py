@@ -1,10 +1,12 @@
 import threading
+import asyncio
 import tkinter as tk
 import pygame
 import time
 import cv2
+import nest_asyncio
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from utils import process_transparentize_green_back, save_as_temp_file, load_image_or_video, delete_tmp_files, capture_first_frame
 from edit_medias import EditMedia
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
@@ -27,7 +29,7 @@ class GenerateVideo:
 
         # メインキャラクター
         self.main_character = None
-        self.subtitle_image_path = None
+
 
         # キャラクターごとの最後に入力したモーションショットカットを保持する辞書
         self.last_motion_shortcut = {
@@ -35,133 +37,87 @@ class GenerateVideo:
             "other": None
         }
 
-        self.default_explanation_image_path = r"Asset/Greenbak.png"
+        self.default_explanation_media_path = r"Asset/Greenbak.png"
+
+        # OBSの背景・Vキャラ・Vキャラ画像を取得
+        self.obs_background_image = None
+        self.obs_vtuber_image = None
+        self.obs_v_cat_image = None
+        self.obs_whiteboard_image = None
+        self.obs_subtitle_image = None
+        self.obs_whiteboard_image_path = None
+        self.obs_subtitle_image_path = None
 
         # プレビューエリアを作成 → 動画の大きさ
         self.preview_width = 1920
         self.preview_height = 1080
         # self.preview = Image.new('RGBA', (self.preview_width, self.preview_height))  # RGBAモードで作成
 
-        self.preview = Image.new('RGBA', (self.preview_width, self.preview_height), (0, 0, 0, 0))  # 透明背景
         self.preview_green = Image.new('RGB', (self.preview_width, self.preview_height), (0, 255, 0))  # グリーンスクリーン
 
 
 
         self.scene_name = "AI_Tuber_test"
-
-    # プレビュー画像を生成する関数
-    async def generate_preview_image(self, background_video_file_input, 
-                               explanation_image_path, whiteboard_image_path, subtitle_image_path, 
-                               vtuber_character_path, background_image_path=None):
-
-        if background_image_path:
-            # 背景動画の最初のフレームを読み込む
-            background_image = capture_first_frame(background_video_file_input)
-            # プレビューエリアのサイズに合わせてリサイズ
-            background_image = self.edit_medias.resize_image_aspect_ratio(background_image, self.preview_width, self.preview_height+1)#調整
-        else:
-            # 背景動画の最初のフレームを読み込む
-            background_image = Image.open(background_image_path)
+        # self.vtuber_image = None
+        # self.v_cat_image = None
 
 
-        # # 背景動画の最初のフレームを読み込む
-        # background_image = capture_first_frame(background_video_file_input)
-        # # プレビューエリアのサイズに合わせてリサイズ
-        # background_image = self.edit_medias.resize_image_aspect_ratio(background_image, self.preview_width, self.preview_height+1)#調整
+    async def request_obs_screenshot_image(self, source_name):
+        """
+        OBSのスクリーンショットを取得する関数
+        """
+        return await self.edit_medias.create_obs_screenshot_image(source_name)
 
 
-        # 字幕画像を読み込む
-        subtitle_img = Image.open(subtitle_image_path).convert("RGBA")
-        subtitle_img = process_transparentize_green_back(subtitle_img) # グリーンスクリーンを透明にする
-
-        # Vキャラ画像を読み込む
-        vtuber_img = Image.open(vtuber_character_path).convert("RGBA")  # RGBAモードに変換
-        # vtuber_img = process_transparentize_green_back(vtuber_img) # グリーンスクリーンを透明にする
-
-        # Vキャラ画像を生成(　→　背景含む全体
-        v_cat_img = await self.edit_medias.create_obs_screenshot_image("V_cat")
-        # v_cat_img_path = save_as_temp_file(v_cat_img)
-
-
-
-        # # ホワイトボード画像を読み込む
-        # whiteboard_img = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
-
-        # # 解説画像を読み込む
-        # explanation_img = load_image_or_video(explanation_image_path)
-        # # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
-
-        whiteboard_and_explanation_img = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path) 
-        whiteboard_and_explanation_img_path = save_as_temp_file(whiteboard_and_explanation_img)
-
-
-        # # 背景画像を合成
-        # self.preview.paste(background, (0, 0))
-
-        
-        # ホワイトボード画像を合成
-
-        # whiteboard_x = 30#ホワイトボード画像の位置を計算
-        # whiteboard_y = 30#ホワイトボード画像の位置を計算
-        # self.preview.paste(whiteboard_img, (whiteboard_x, whiteboard_y), mask=whiteboard_img)#ホワイトボード画像を合成
-
-        # # ホワイトボード画像に解説画像を合成する
-        # explanation_x = (whiteboard_img.width - explanation_img.width) // 2 + whiteboard_x#解説画像の位置を計算
-        # explanation_y = (whiteboard_img.height - explanation_img.height) // 2 + whiteboard_y#解説画像の位置を計算
-        # self.preview.paste(explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
-
-        # explanation_img = process_transparentize_green_back(explanation_img)
-        # self.preview.paste(explanation_img, (30, 30), mask=explanation_img)
+    def generate_preview_image(self, explanation_media_path, subtitle_image_path):
+        """
+        プレビュー画像を生成する関数
+        """
+        # プレビュー画像を作成
+        preview = Image.new('RGBA', (self.preview_width, self.preview_height), (0, 0, 0, 0))  # 透明背景
 
         # 背景画像を合成
-        # self.preview.paste(background, (0, 0))
-        self.preview.paste(background_image, (0, 0))
+        resized_background_image = self.edit_medias.resize_image_aspect_ratio(self.obs_background_image, self.preview_width, self.preview_height+1)#調整
+        preview.paste(resized_background_image, (0, 0))
 
-        # 解説画像を合成
-        self.preview.paste(whiteboard_and_explanation_img, (30, 30), mask=whiteboard_and_explanation_img)
+        # ホワイトボード画像と解説画像を合成
+        whiteboard_and_explanation_img = self.edit_medias.generate_composite_media(self.obs_whiteboard_image_path, explanation_media_path)  # 解説画像を合成
+        preview.paste(whiteboard_and_explanation_img, (30, 30), mask=whiteboard_and_explanation_img)
+        save_as_temp_file(whiteboard_and_explanation_img)
 
-        # Vキャラ画像を合成->obsのスクリーンショット
-        # リサイズ後の位置を計算
-        # vtuber_x = self.preview_width - vtuber_img.width +10#調整
-        # vtuber_y = self.preview_height - vtuber_img.height -200#調整
-        # self.preview.paste(vtuber_img, (vtuber_x, vtuber_y), mask=vtuber_img)
-        self.preview.paste(vtuber_img, (0, 0), mask=vtuber_img)
+        # Vキャラ画像を合成(vtuber)
+        preview.paste(self.obs_vtuber_image, (0, 0), mask=self.obs_vtuber_image)
 
         # 字幕を合成
-        # subtitle_x = (self.preview_width - subtitle_img.width) // 2
-        # subtitle_y = self.preview_height - subtitle_img.height
-        # print(f"subtitle_x: {subtitle_x}, subtitle_y: {subtitle_y}")
-        # self.preview.paste(subtitle_img, (subtitle_x, subtitle_y), mask=subtitle_img)
-        
-        # subtitle_imgをクロマキー処理 -> 字幕を合成
-        self.preview.paste(subtitle_img, (0, 0), mask=subtitle_img)
+        subtitle_image = Image.open(subtitle_image_path).convert("RGBA")#字幕画像を読み込む
+        preview.paste(subtitle_image, (0, 0), mask=subtitle_image)
 
-        # Vキャラ画像を合成
-        self.preview.paste(v_cat_img, (0, 0), mask=v_cat_img)
+        # Vキャラ画像を合成(v_cat)
+        preview.paste(self.obs_v_cat_image, (0, 0), mask=self.obs_v_cat_image)
+
+        # previewを小さくリサイズ
+        preview = self.edit_medias.resize_image_aspect_ratio(preview, self.preview_width // 3, self.preview_height // 3)
 
         # プレビュー画像を保存
-        preview_image_path = save_as_temp_file(self.preview)
+        preview_image_path = save_as_temp_file(preview)
 
         return preview_image_path
 
 
-    # 動画生成の主要な処理を行う関数
-    async def generate_video(self, csv_file_input, bgm_file_input, background_video_file_input, 
+    def generate_video(self, csv_file_input, 
                     character_name_input, model_list_state, selected_model_tuple_state, 
                     reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
-
+        """
+        動画生成の主要な処理を行う関数
+        """
         from handle_frame_event import HandleFrameEvent
-        handle_frame_event = HandleFrameEvent()
+        handle_frame_event = HandleFrameEvent(self)
 
         # global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
-        # frame_data_list = [] # フレームデータのリストをクリア
         self.frame_data_list.clear() # フレームデータのリストをクリア
-
         # print(f"frame_data_list: {self.frame_data_list}")
 
         delete_tmp_files() #tmpフォルダーの中身を全て削除する
-
-        # print(f"動画準備開始\n")
 
         self.main_character = character_name_input#メインキャラクターを設定
 
@@ -176,82 +132,37 @@ class GenerateVideo:
         model_name, model_id, speaker_id = selected_model#選択されたモデルの情報を取得
         # print(f"選択されたモデル: {model_name}, モデルID: {model_id}, 話者ID: {speaker_id}")
 
+        # # OBSの背景・Vキャラ・Vキャラ画像を取得
+        self.obs_background_image = self.edit_medias.create_obs_screenshot_image("background")
+        self.obs_vtuber_image = self.edit_medias.create_obs_screenshot_image("VTuber") 
+        self.obs_v_cat_image = self.edit_medias.create_obs_screenshot_image("V_cat")
+
+        # ホワイドボード画像の生成
+        self.obs_whiteboard_image = self.edit_medias.create_obs_screenshot_image("ホワイドボード") 
+        # 字幕画像の生成
+        self.obs_subtitle_image = self.edit_medias.create_obs_screenshot_image("字幕_preview")
+        # ホワイドボード画像と字幕画像を保存
+        self.obs_whiteboard_image_path = save_as_temp_file(self.obs_whiteboard_image)
+        self.obs_subtitle_image_path = save_as_temp_file(self.obs_subtitle_image)
 
         # キャラクター・セリフ情報を処理
-        for character, line in character_lines:          
+        for character, line in character_lines:
             # 元のセリフを字幕用として変数に保持します。
             # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
             subtitle_line, reading_line = self.create_subtitle_voice.process_line(line, registered_words_table)
-            # print(f"subtitle_line: {subtitle_line},\n reading_line: {reading_line} \n")
-
+    
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
             audio_file = self.create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id, reading_speed_slider)
 
             # キャラクター事にショートカットキーを選択
             emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
-            # emotion_shortcut, motion_shortcut = 'alt+n', 'alt+0'
 
-            # 背景画像の作成
-            background_image = await self.edit_medias.create_obs_screenshot_image("background")
-            background_image_path = save_as_temp_file(background_image)
-
-            # Vキャラ画像を生成(　→　背景含む全体
-            vtuber_img = await self.edit_medias.create_obs_screenshot_image("VTuber")
-            vtuber_img_path = save_as_temp_file(vtuber_img)
-
-
-            # # ホワイトボード画像を生成
-            # # VTuber_subtitle_height = self.preview_width -1#調整
-            # # プレビューウィズの2/3の大きさに調整する   
-            # # whiteboard_subtitle_width = self.preview_width // 3 * 2
-            # # whiteboard_subtitle_height = self.preview_height - subtitle_img.height // 2 +20#調整
-            # # print(f"width,height: {whiteboard_subtitle_width},{whiteboard_subtitle_height}")
-            # whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_img)
-            # whiteboard_image_path = save_as_temp_file(whiteboard_image)
-
-
-            # # ホワイトボード画像に解説画像を合成する
-            # load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
-            # # explanation_img = whiteboard_image
-            
-            # # 解説画像(初期値：グリーンバック)を生成
-            # # explanation_image_path = self.default_explanation_image_path
-            # load_explanation_img = Image.open(self.default_explanation_image_path).convert("RGBA")  # RGBAモードに変換
-            # # load_explanation_img = load_image_or_video(explanation_image_path).convert("RGBA")  # RGBAモードに変換
-            # # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
-            # load_explanation_img = self.edit_medias.resize_image_aspect_ratio(load_explanation_img, load_whiteboard_image.width - 20, load_whiteboard_image.height - 20)
-            # # 解説画像の周りにボーダーを追加
-            # # load_explanation_img = self.edit_medias.add_border(load_explanation_img, 5)
-
-            # # whiteboard_x = 30#ホワイトボード画像の位置を計算
-            # # whiteboard_y = 30#ホワイトボード画像の位置を計算
-            # # explanation_x = (explanation_img.width - load_explanation_img.width) // 2 + whiteboard_x#解説画像の位置を計算
-            # # explanation_y = (explanation_img.height - load_explanation_img.height) // 2 + whiteboard_y#解説画像の位置を計算
-
-            # explanation_x = (load_whiteboard_image.width - load_explanation_img.width) // 2 #解説画像の位置を計算
-            # explanation_y = (load_whiteboard_image.height - load_explanation_img.height) // 2 #解説画像の位置を計算
-            # load_whiteboard_image.paste(load_explanation_img, (explanation_x, explanation_y))#ホワイトボード画像に解説画像を合成
-
-            # 字幕画像の生成->グリーンバック＋字幕画像
-            subtitle_img = self.edit_medias.generate_subtitle(subtitle_line, self.preview_width, self.preview_height)#字幕画像の生成
-            subtitle_image_path = save_as_temp_file(subtitle_img)#テンポラリファイルに保存
-
-            # ホワイトボード画像の生成
-            whiteboard_image = self.edit_medias.create_whiteboard(self.preview_width, self.preview_height, subtitle_image_path)
-            whiteboard_image_path = save_as_temp_file(whiteboard_image)
-
-             # ホワイトボード画像と解説画像を合成
-            explanation_image_path = self.default_explanation_image_path # デフォルトの解説画像を読み込み
-            # whiteboard_and_explanation_img = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path) 
-            # whiteboard_and_explanation_img_path = save_as_temp_file(whiteboard_and_explanation_img)
-
-            # # test
-            # green_explanation_img = self.preview_green
-            # green_explanation_img.paste(explanation_img, (30, 30))
-            # explanation_image_path = save_as_temp_file(green_explanation_img)
+            # 画面の文字大きさの字幕画像の生成->グリーンバック＋字幕画像
+            subtitle_image = self.edit_medias.generate_subtitle(subtitle_line, self.obs_subtitle_image_path, self.preview_width, self.preview_height)#字幕画像の生成
+            subtitle_image_path = save_as_temp_file(subtitle_image)
 
             # プレビュー画像を生成
-            preview_image = await self.generate_preview_image(background_video_file_input, explanation_image_path, whiteboard_image_path, subtitle_image_path, vtuber_img_path, background_image_path)
+            preview_image_path = self.generate_preview_image(self.default_explanation_media_path, subtitle_image_path)
 
             # フレームデータの生成とリストへの保存
             frame_data = FrameData(
@@ -263,26 +174,14 @@ class GenerateVideo:
                 audio_file=audio_file,
                 emotion_shortcut=emotion_shortcut,
                 motion_shortcut=motion_shortcut,
-                explanation_image_path=explanation_image_path,
+                explanation_media_path=self.default_explanation_media_path,
                 # explanation_image_path=self.default_explanation_image_path,
-                whiteboard_image_path=whiteboard_image_path,
+                whiteboard_image_path=self.obs_whiteboard_image_path,
                 subtitle_image_path=subtitle_image_path,
-                preview_image=preview_image,
-                background_video_path=background_image_path
+                preview_image=preview_image_path
             )
             self.frame_data_list.append(frame_data)
 
-        # print(f"動画準備終了\n")
-
-        # return の準備
-        # first_frame_data = self.frame_data_list[0]
-        # # subtitle_line, reading_line, audio_file, emotion_shortcut, motion_shortcut, explanation_image_path, whiteboard_image_path, subtitle_image_path, preview_image, selected_model = self.frame_data_list[0]
-
-        # frame_data_listの中身をわかりやすくそれぞれに名前をつけて表示
-        # preview_images = [frame_data.preview_image for frame_data in self.frame_data_list]
-        # print(f"[0]subtitle_line: {subtitle_line},\n [1]reading_line: {reading_line},\n [2]audio_file: {audio_file},\n [3]emotion_shortcut: {emotion_shortcut},\n [4]motion_shortcut: {motion_shortcut},\n [5]explanation_image_path: {explanation_image_path},\n [6]whiteboard_image_path: {whiteboard_image_path},\n [7]subtitle_image_path: {subtitle_image_path},\n [8]preview_images: {preview_images},\n [9]selected_model: {selected_model}")
-
         print(f"動画の準備が完了しました")
-        selected_index = 0
-        return handle_frame_event.update_ui_elements(selected_index, self.frame_data_list)
-        # return first_frame_data.subtitle_line, first_frame_data.reading_line, first_frame_data.audio_file, first_frame_data.emotion_shortcut, first_frame_data.motion_shortcut, None, first_frame_data.whiteboard_image_path, first_frame_data.subtitle_image_path, preview_images, first_frame_data.selected_model, self.frame_data_list, first_frame_data.reading_speed
+        return handle_frame_event.update_ui_elements(selected_index = 0, frame_data_list = self.frame_data_list)
+    

@@ -18,10 +18,10 @@ from edit_medias import EditMedia
 
 
 class HandleFrameEvent:
-    def __init__(self):
-    # def __init__(self, generate_video):
-        self.generate_video = GenerateVideo()
-        # self.generate_video = generate_video
+    # def __init__(self):
+    def __init__(self, generate_video):
+        # self.generate_video = GenerateVideo()
+        self.generate_video = generate_video
         self.create_subtitle_voice = CreateSubtitleVoice()
         self.edit_medias = EditMedia()
 
@@ -36,22 +36,6 @@ class HandleFrameEvent:
     def update_ui_elements(self, selected_index, frame_data_list: list[FrameData]):
 
         # 各要素を抽出
-        # try:
-        #     character_names = [frame_data.character_name for frame_data in frame_data_list]
-        #     subtitle_input_list = [frame_data.subtitle_line for frame_data in frame_data_list]
-        #     reading_input_list = [frame_data.reading_line for frame_data in frame_data_list]
-        #     reading_speed_sliders = [frame_data.reading_speed for frame_data in frame_data_list]
-        #     selected_model_list = [frame_data.selected_model for frame_data in frame_data_list]
-        #     audio_file_list = [frame_data.audio_file for frame_data in frame_data_list]
-        #     emotion_dropdown_list = [frame_data.emotion_shortcut for frame_data in frame_data_list]
-        #     motion_dropdown_list = [frame_data.motion_shortcut for frame_data in frame_data_list]
-        #     explanation_path_list = [frame_data.explanation_image_path for frame_data in frame_data_list]
-        #     whiteboard_image_path_list = [frame_data.whiteboard_image_path for frame_data in frame_data_list]
-        #     preview_images = [frame_data.preview_image for frame_data in frame_data_list]
-        # except IndexError as e:
-        #     print(f"IndexError: {e}")
-        #     return None, None, None, None, None, None
-
         frame_data: FrameData = frame_data_list[selected_index]
         character_name = frame_data.character_name
         reading_speed_slider = frame_data.reading_speed
@@ -61,30 +45,15 @@ class HandleFrameEvent:
         test_playback_button = frame_data.audio_file
         emotion_dropdown = frame_data.emotion_shortcut
         motion_dropdown = frame_data.motion_shortcut
-        # image_video_input = explanation_path_list[selected_index]
-        whiteboard_image_path = frame_data.whiteboard_image_path
-
-        # character_name = character_names[selected_index]
-        # reading_speed_slider = reading_speed_sliders[selected_index]
-        # subtitle_input = subtitle_input_list[selected_index]
-        # reading_input = reading_input_list[selected_index]
-        # selected_model_tuple_state = selected_model_list[selected_index]
-        # test_playback_button = audio_file_list[selected_index]
-        # emotion_dropdown = emotion_dropdown_list[selected_index]
-        # motion_dropdown = motion_dropdown_list[selected_index]
-        # # image_video_input = explanation_path_list[selected_index]
-        # whiteboard_image_path = whiteboard_image_path_list[selected_index]
-
-        preview_images = [frame_data.preview_image for frame_data in frame_data_list]
         image_video_input = None
-
-        # 戻り値として各要素のリストを返す
-        # return preview_images, subtitle_input, reading_input, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input
+        # image_video_input = explanation_path_list[selected_index]
+        whiteboard_image = frame_data.whiteboard_image_path
+        preview_images = [frame_data.preview_image for frame_data in frame_data_list]
 
         return (
             character_name, subtitle_input, reading_input, reading_speed_slider, 
-            selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-            image_video_input, whiteboard_image_path, preview_images, 
+            selected_model_tuple_state,test_playback_button, emotion_dropdown, motion_dropdown, 
+            image_video_input, whiteboard_image, preview_images,
             selected_index, frame_data_list
         )
 
@@ -101,46 +70,35 @@ class HandleFrameEvent:
         return "\n".join(diff_list)
 
 
-    # ギャラリーのインデックスが選択されたときに呼び出される関数
-    async def handle_gallery_click(self, evt: gr.SelectData, 
+    def handle_gallery_click(self, evt: gr.SelectData, 
                 character_name,subtitle_input, reading_input, update_reading_speed_slider,
                 selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                 image_video_input, whiteboard_image_path, 
                 selected_index, frame_data_list_state: list[FrameData]):
-        
+        """
+        ギャラリーのインデックスが選択されたときに呼び出される関数
+        """
         new_selected_index = evt.index  # ギャラリーのインデックスを取得 -> kwargs のセレクトインデックスを更新
         current_frame_data: FrameData = frame_data_list_state[selected_index] #現在のフレームデータを取得
         
-        # 現在のデータと新しいデータを比較
-        if (current_frame_data.subtitle_line != subtitle_input 
-                or current_frame_data.reading_line != reading_input 
-                or current_frame_data.reading_speed != update_reading_speed_slider
-                or current_frame_data.emotion_shortcut != emotion_dropdown
-                or current_frame_data.motion_shortcut != motion_dropdown
-                # or current_frame_data.explanation_image_path != image_video_input
-                or image_video_input != None
-                ): 
-
-            return await self.on_update_reading_click(
-                character_name, subtitle_input, reading_input, update_reading_speed_slider,
-                selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                image_video_input, whiteboard_image_path, 
-                selected_index, frame_data_list_state)
-        
-
-                #        if image_video_input == None: #画像がない場合
-                # image_video_input = current_frame_data.explanation_image_path
-
+        # フレームデータを更新
+        self.update_frame_data(current_frame_data, 
+                               character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                               selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                               image_video_input, whiteboard_image_path)
+        # UIコンポーネントを更新
         return self.update_ui_elements(new_selected_index, frame_data_list_state)
 
 
-    # 読み方変更ボタンがクリックされたときの処理
-    async def on_update_reading_click(self, 
-                                      character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                                      selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                                      image_video_input, whiteboard_image_path, 
-                                      selected_index, frame_data_list_state: list[FrameData]):
-
+    def on_update_reading_click(self, 
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
+                    selected_index, frame_data_list_state: list[FrameData]):
+        """
+        読み方変更ボタンがクリックされたときの処理
+        フレームデータを更新する関数
+        """
         # フレームデータリストがNoneの場合の処理
         if frame_data_list_state is None:
             raise ValueError(f"frame_data_list_state is -> {frame_data_list_state}")
@@ -148,80 +106,86 @@ class HandleFrameEvent:
         if selected_index is None:
             raise ValueError(f"selected_index is -> {selected_index}")
             
+         #現在のフレームデータを取得
+        current_frame_data: FrameData = frame_data_list_state[selected_index]
+        # フレームデータを更新
+        self.update_frame_data(current_frame_data, 
+                               character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                               selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                               image_video_input, whiteboard_image_path)
+        # UIコンポーネントを更新
+        return self.update_ui_elements(selected_index, frame_data_list_state)
 
-        # 字幕画像の生成
-        subtitle_img = self.edit_medias.generate_subtitle(
-                    subtitle_input, self.generate_video.preview_width, self.generate_video.preview_height
-                    )#字幕画像の生成
-        subtitle_image_path = save_as_temp_file(subtitle_img)#テンポラリファイルに保存
 
-        # # Vキャラ画像を生成 -> クロマキー処理
-        # vtuber_img = self.generate_video.edit_medias.create_vtuber_image()
-        vtuber_img = await self.edit_medias.create_obs_screenshot_image("VTuber")
-        vtuber_character_path = save_as_temp_file(vtuber_img)
+    def update_frame_data(self, current_frame_data: FrameData,
+                        character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                        selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                        image_video_input, whiteboard_image_path):
+        """
+        フレームデータを更新する関数
+        """
+        # 変更フラグ
+        change_flag = False
 
-        # # 解説画像の生成
-        # explanation_img = load_image_or_video(image_video_input).convert("RGBA")  # RGBAモードに変換
-        # whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")  # RGBAモードに変換
-        # # 解説画像のアスペクト比を維持しながらホワイトボード画像に合わせてリサイズ
-        # explanation_img = self.generate_video.edit_medias.resize_image_aspect_ratio(explanation_img, whiteboard_image.width - 20, whiteboard_image.height - 20)
-        # # 解説画像の周りにボーダーを追加
-        # explanation_img = self.generate_video.edit_medias.add_border(explanation_img, 10)
-        # explanation_image_path = save_as_temp_file(explanation_img)
+        # 字幕の変更
+        if (current_frame_data.subtitle_line != subtitle_input):
+            # 変更フラグをTrueにする
+            change_flag = True
+            # 字幕の変更
+            current_frame_data.subtitle_line = subtitle_input 
+            # 字幕画像の変更
+            subtitle_img = self.edit_medias.generate_subtitle(
+                        subtitle_input, 
+                        self.generate_video.obs_subtitle_image_path, 
+                        self.generate_video.preview_width, 
+                        self.generate_video.preview_height
+                        )
+            subtitle_image_path = save_as_temp_file(subtitle_img)
+            current_frame_data.subtitle_image_path=subtitle_image_path
 
-        # # image_video_input が None の場合の処理
-        # if image_video_input is None:
-        #     image_video_input = r"Asset\Greenbak.png"
-
-        # ホワイトボード画像と解説画像を合成
-        if image_video_input is None:
-            explanation_image_path = frame_data_list_state[selected_index].explanation_image_path
-            # explanation_image_path = self.generate_video.default_explanation_image_path #r"Asset\Greenbak.png"
-        else:
-            explanation_image_path = image_video_input
-        #     composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, image_video_input)
-            # explanation_image_path = save_as_temp_file(composite_image)
-
-        # composite_image = self.edit_medias.generate_composite_image(whiteboard_image_path, explanation_image_path)
-        # explanation_image_path = save_as_temp_file(composite_image)
-
-        background_video_file = "background_video\default_video.mp4"
-        background_image_path = frame_data_list_state[selected_index].background_video_path
-        # プレビュー画像の生成  
-        preview_image_path = self.generate_video.generate_preview_image(
-            background_video_file, 
-            explanation_image_path, whiteboard_image_path, subtitle_image_path, 
-            vtuber_character_path, background_image_path
-            )
-
-        # 現在のフレームデータを更新
-        frame_data : FrameData = frame_data_list_state[selected_index]
-
-        # if image_video_input == r"Asset\Greenbak.png": #画像がない場合
-        #     image_video_input = None #Noneに変換
-
-        #読み方が変わっていれば音声変換してパスを取得
-        if reading_input != frame_data.reading_line or update_reading_speed_slider != frame_data.reading_speed:
-
-            model_name, model_id, speaker_id = selected_model_tuple_state #モデル情報を取得
+        # 読み方の変更
+        if (current_frame_data.reading_line != reading_input
+                or current_frame_data.reading_speed != update_reading_speed_slider):
+            # 変更フラグをTrueにする
+            change_flag = True
+            # 読み方の変更
+            current_frame_data.reading_line = reading_input
+            # 読み方の速度の変更
+            current_frame_data.reading_speed = update_reading_speed_slider
+            # 音声ファイルの変更
+            model_name, model_id, speaker_id = selected_model_tuple_state # モデル情報の取得
             audio_file_path = self.create_subtitle_voice.generate_audio(
                     subtitle_input, reading_input, 
                     model_name, model_id, speaker_id, update_reading_speed_slider
-                    ) #音声変換
-            
-            frame_data.audio_file = audio_file_path #フレームデータに音声パスを追加
-            frame_data.reading_speed = update_reading_speed_slider #フレームデータに音声パスを追加
+                    ) 
+            current_frame_data.audio_file = audio_file_path 
 
-        frame_data.subtitle_line = subtitle_input #字幕
-        frame_data.reading_line = reading_input #読み方
-        frame_data.explanation_image_path = explanation_image_path #画像
-        frame_data.preview_image = preview_image_path #プレビュー画像
+        # 感情の変更
+        if (current_frame_data.emotion_shortcut != emotion_dropdown and emotion_dropdown != None):
+            # 変更フラグをTrueにする
+            change_flag = True
+        
+        # モーションの変更
+        if (current_frame_data.motion_shortcut != motion_dropdown and motion_dropdown != None):
+            # 変更フラグをTrueにする
+            change_flag = True
+        
+        # 画像の変更
+        if (image_video_input != None):
+            # 変更フラグをTrueにする
+            change_flag = True
+            # 画像の変更
+            current_frame_data.explanation_media_path = image_video_input
+            # if image_video_input == r"Asset\Greenbak.png": #画像がない場合
+            #     image_video_input = None #Noneに変換
 
-        # 更新されたフレームデータをリストに戻す
-        frame_data_list_state[selected_index] = frame_data
+        # プレビュー画像の変更
+        if (change_flag): 
+            preview_image_path = self.generate_video.generate_preview_image(
+                current_frame_data.explanation_media_path, current_frame_data.subtitle_image_path, 
+                )
+            current_frame_data.preview_image = preview_image_path
 
-        # UIコンポーネントを更新
-        return self.update_ui_elements(selected_index, frame_data_list_state)
 
 
     # def on_video_creation_complete(self, task, selected_index, frame_data_list):
@@ -235,29 +199,19 @@ class HandleFrameEvent:
 
 
     # 動画作成ボタンがクリックされたときの処理
-    async def create_video(self, output_folder_input, bgm_file_input, background_video_file_input,
+    def create_video(self, output_folder_input, bgm_file_input, background_video_file_input,
                            character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                            selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                            image_video_input, whiteboard_image_path, 
                            selected_index, frame_data_list_state: list[FrameData]):
                            
-        current_frame_data: FrameData = frame_data_list_state[selected_index]#現在のフレームデータを取得
-        result = None
-
-        # 現在のデータと新しいデータを比較
-        if (current_frame_data.subtitle_line != subtitle_input 
-                or current_frame_data.reading_line != reading_input 
-                or current_frame_data.reading_speed != update_reading_speed_slider
-                or current_frame_data.emotion_shortcut != emotion_dropdown
-                or current_frame_data.motion_shortcut != motion_dropdown
-                or current_frame_data.explanation_image_path != image_video_input
-                ): 
-            result = self.on_update_reading_click(
-                                      character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                                      selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                                      image_video_input, whiteboard_image_path,  
-                                      selected_index, frame_data_list_state
-                                      )
+        # result = None
+        result = self.on_update_reading_click(
+                                character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                                selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                                image_video_input, whiteboard_image_path,  
+                                selected_index, frame_data_list_state
+                                )
 
         # output_folder_inputがなければ作成する
         if not os.path.exists(output_folder_input):
@@ -266,7 +220,7 @@ class HandleFrameEvent:
 
         # 動画作成
         create_video = CreateVideo(frame_data_list_state, output_file_path, background_video_file_input)
-        output_file_path = await create_video.create_video_run()
+        output_file_path = create_video.create_video_run()
 
         # 別スレッドで実行
         # task = asyncio.create_task(create_video.create_video_run())

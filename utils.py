@@ -18,26 +18,32 @@ from constants import *
 #     except FileNotFoundError:
 #         return {}
 
-#ディレクトリを作成
+
 def create_directory(desired_directory):
+    """
+    ディレクトリを作成する関数
+    """
     if desired_directory is None:
         desired_directory = os.path.abspath(os.path.dirname(__file__))  # デフォルトディレクトリ
 
-    #ディレクトリを作成
     if not os.path.exists(desired_directory):
         os.makedirs(desired_directory)
 
 
-#一時ファイルとして保存しパスを返す関数
 def save_as_temp_file(img, suffix=".png", desired_directory="tmp"):
+    """
+    画像を一時ファイルとして保存しパスを返す関数
+    """
     create_directory(desired_directory)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=desired_directory) as tmp:
         img.save(tmp.name)
         return tmp.name
 
 
-#一時ファイルとして保存しパスを返す関数
 def save_as_temp_file_audio(audio_data, suffix=".wav", desired_directory="tmp"):
+    """
+    音声データを一時ファイルとして保存しパスを返す関数
+    """
     # 一時ファイルを作成して音声データを保存
     create_directory(desired_directory)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=desired_directory) as temp_file:
@@ -46,8 +52,10 @@ def save_as_temp_file_audio(audio_data, suffix=".wav", desired_directory="tmp"):
         return temp_file_path
 
 
-# 動画を一時ファイルとして保存しパスを返す関数  
 def save_as_temp_video(video_data, suffix=".mp4", desired_directory="tmp"):
+    """
+    動画を一時ファイルとして保存しパスを返す関数
+    """
     create_directory(desired_directory)
     temp_video_path = os.path.join(desired_directory, f"temp_video{suffix}")
     
@@ -82,9 +90,10 @@ def save_as_temp_video(video_data, suffix=".mp4", desired_directory="tmp"):
     return temp_video_path
 
 
-
-# tmpフォルダーの中身を全て削除する関数 
 def delete_tmp_files():
+    """
+    tmpフォルダーの中身を全て削除する関数
+    """
     # tmp フォルダーの中身を全て削除する
     tmp_directory = 'tmp'
     for filename in os.listdir(tmp_directory):
@@ -98,9 +107,10 @@ def delete_tmp_files():
             print(f'ファイル {file_path} の削除中にエラーが発生しました。エラー: {e}')
 
 
-
-# 動画の最初の部分をキャプチャーして画像として返す
 def capture_first_frame(video_path):
+    """
+    動画の最初の部分をキャプチャーして画像として返す関数
+    """
     # 動画ファイルを開く
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -122,8 +132,10 @@ def capture_first_frame(video_path):
     return img
 
 
-# 解説画像が動画ファイルの場合、最初のフレームを抽出して使用
 def load_image_or_video(path):
+    """
+    画像または動画ファイルを読み込む関数
+    """
     if path.lower().endswith(('.mp4', '.avi', '.mov')):
         img = capture_first_frame(path)
         if img is None:
@@ -133,9 +145,10 @@ def load_image_or_video(path):
     return img
 
 
-# グリーンバックの色(00FF00)を透明に変換
 def process_transparentize_green_back(img):
-
+    """
+    グリーンバックの色(00FF00)を透明に変換する関数
+    """
     # PILイメージの場合
     if isinstance(img, Image.Image):
         # PILイメージをNumPy配列に変換
@@ -181,8 +194,10 @@ def process_transparentize_green_back(img):
     return img
 
 
-# 設定ファイルを読み込む関数
 def load_settings(json_file_path):
+    """
+    設定ファイルを読み込む関数
+    """
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             settings = json.load(f)
@@ -200,8 +215,10 @@ def load_settings(json_file_path):
         return "葉加瀬あい", "model1", 1.0, "outputs", "bgm\\default_bgm.wav", "background_video\\default_video.mp4", {emotion: [] for emotion in EMOTIONS}, {}, {}
 
 
-# 設定ファイルを保存する関数
 def save_settings(emotion_shortcuts, actions, json_file_output):
+    """
+    設定ファイルを保存する関数
+    """
     settings = {
         "emotion_shortcuts": emotion_shortcuts,
         "actions": actions,
@@ -211,9 +228,10 @@ def save_settings(emotion_shortcuts, actions, json_file_output):
         json.dump(settings, f, indent=2, ensure_ascii=False)
 
 
-
-# BGMファイルを変換する関数
 def convert_bgm_to_wav(filename):
+    """
+    BGMファイルを変換する関数
+    """
     # ファイルがMP4, AVI, MOVファイルであるかをチェック
     if filename.endswith((".mp4", ".avi", ".mov")):
         # 元のファイルのフルパス
@@ -246,8 +264,10 @@ def convert_bgm_to_wav(filename):
         return filename
 
 
-# メディアをリサイズする関数
 def resize_media(media_path, target_width, target_height):
+    """
+    メディアをリサイズする関数
+    """
     # メディアのタイプを判定
     media_type = 'video' if media_path.endswith(('.mp4', '.avi', '.mov')) else 'image'
 
@@ -297,8 +317,10 @@ def resize_media(media_path, target_width, target_height):
         return video
     
 
-    # 動画のアスペクト比を維持しながらリサイズ 
 def resize_video_aspect_ratio(input_path, output_path, target_width=None, target_height=None):
+    """
+    動画をアスペクト比を維持しながらリサイズする関数
+    """
     # 動画クリップを読み込む
     video = VideoFileClip(input_path)
     
@@ -331,8 +353,10 @@ def resize_video_aspect_ratio(input_path, output_path, target_width=None, target
 
 
 
-# アスペクト比を維持しながら、指定した横幅または高さに基づいてリサイズ後の寸法を計算
 def resize_aspect_ratio(current_width, current_height, target_width, target_height):
+    """
+    アスペクト比を維持しながら、指定した横幅または高さに基づいてリサイズ後の寸法を計算する関数
+    """
     aspect_ratio = current_width / current_height
     
     if target_width is not None and target_height is not None:

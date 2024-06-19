@@ -11,6 +11,7 @@ import json
 # from tkinter import filedialog
 # from moviepy.editor import VideoFileClip
 # from datetime import datetime
+from PIL import Image
 
 from vtuber_camera import VTuberCamera
 # from edit_medias import EditMedia
@@ -33,8 +34,8 @@ class UI:
         self.create_subtitle_voice = CreateSubtitleVoice()
         # self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
         self.handle_gallery_event = HandleGalleryEvent()
-        # self.handle_frame_event = HandleFrameEvent(self.generate_video)  # インスタンスを渡す
-        self.handle_frame_event = HandleFrameEvent()  # インスタンスを渡す
+        # self.handle_frame_event = HandleFrameEvent()  # インスタンスを渡す
+        self.handle_frame_event = HandleFrameEvent(self.generate_video)  # インスタンスを渡す
 
         # 設定ファイルの読み込み
         with open(DEFAULT_SETTING_FILE, "r", encoding="utf-8") as f:
@@ -58,7 +59,7 @@ class UI:
 
 
     # Gradioアプリケーションの構築
-    async def create_ui(self):
+    def create_ui(self):
         with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
             gr.Markdown("# AI Tuber Test Program")# タイトル
@@ -74,10 +75,20 @@ class UI:
             frame_data_list_state = gr.State(self.generate_video.frame_data_list)
 
             with gr.Row():
+
                 with gr.Column(scale=1):
                     csv_file_input = gr.File(label="CSVファイル", file_types=['text'], value="test\\AItuber_test.csv")
-                    bgm_file_input = gr.Audio(label="BGMファイル", value=self.bgm_file, interactive=True)
-                    background_video_file_input = gr.Video(label="背景動画ファイル", value=self.background_video_file, interactive=True)
+                    # bgm_file_input = gr.Audio(label="BGMファイル", value=self.bgm_file, interactive=True)
+                    # background_video_file_input = gr.Video(label="背景動画ファイル", value=self.background_video_file, interactive=True)
+
+                    with gr.Row():
+                        with gr.Column(scale=3):
+                            generate_video_button = gr.Button("感情分析・動画準備開始\n（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", size="lg", interactive=True)
+                        create_video_button = gr.Button("動画生成開始", size="lg", interactive=False)
+
+                    # 動画準備
+                    # 変数をコンソールに表示するボタン
+                    # print_variables_button = gr.Button("変数をコンソールに表示")
 
                 with gr.Column(scale=2):
                     with gr.Tab("読み上げ設定"):
@@ -177,21 +188,7 @@ class UI:
                             save_new_settings_button = gr.Button("新規設定ファイル保存")
 
 
-            # 動画準備
-            with gr.Column():
-                generate_video_button = gr.Button("感情分析・動画準備開始（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", size="lg", interactive=True)
-            with gr.Column():
-                create_video_button = gr.Button("動画生成開始", size="lg", interactive=False)
-            # cancel_button = gr.Button("キャンセル", scale=1, visible=False)
-
-            # 変数をコンソールに表示するボタン
-            # print_variables_button = gr.Button("変数をコンソールに表示")
-
-
             with gr.Row():
-                with gr.Column():
-                    test_playback_button = gr.Audio(value=r"bgm\default_bgm.wav ", type="filepath", label="テスト再生", scale=1)
-                    preview_images = gr.Gallery(label="画像/動画フレーム一覧", elem_id="frame_gallery", scale=2)
                     
                 with gr.Column():
                     with gr.Tab("テキスト・画像・動画編集"):
@@ -206,8 +203,23 @@ class UI:
                         with gr.Column(scale=1):
                             image_video_input = gr.File(label="画像/動画選択", file_types=["image", "video"], interactive=True, height=400)
                             with gr.Row():
-                                preview_image_output = gr.ImageEditor(label="画像プレビュー", elem_id="image_preview_output", interactive=True, visible=False, scale=3, height=400)
-                                preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True, visible=False, scale=3, height=400)
+                                preview_image_output = gr.Image(
+                                    label="画像プレビュー", 
+                                    elem_id="image_preview_output", 
+                                    interactive=True, 
+                                    visible=False, 
+                                    scale=3, 
+                                    height=400
+                                    )
+                                # preview_image_output = gr.ImageEditor(label="画像プレビュー", elem_id="image_preview_output", interactive=True, visible=False, scale=3, height=400)
+                                preview_video_output = gr.Video(
+                                    label="動画プレビュー", 
+                                    elem_id="video_preview_output", 
+                                    interactive=True, 
+                                    visible=False, 
+                                    scale=3, 
+                                    height=400
+                                    )
                                 # delete_image_video_button = gr.Button("削除", visible=False, scale=1)
 
                     # with gr.Tab("画像・動画編集"):
@@ -221,18 +233,27 @@ class UI:
                         # character_size_slider = gr.Slider(minimum=50, maximum=200, step=1, label="キャラクターサイズ")
                         emotion_dropdown = gr.Dropdown(label="表情選択")#, choices=["neutral", "happy", "sad", "angry"])
                         motion_dropdown = gr.Dropdown(label="モーション選択")#, choices=["idle", "nod", "shake", "point"])
-                        with gr.Row():
-                            with gr.Column(scale=3):
-                                vtuber_character_output = gr.Interface(
-                                fn=self.vtuber_camera.get_frame,
-                                inputs=[],
-                                outputs=gr.Image(type="numpy", label="VTuber Camera"),
-                                live=True,
-                                submit_btn="",  # Submitボタンを非表示にする
-                                clear_btn=None,   # Clearボタンを非表示にする
-                                allow_flagging="never",  # Flagボタンを非表示にする
-                            )
-                            vtuber_character_update_button = gr.Button("変更", scale=1)
+                        # with gr.Row():
+                        #     with gr.Column(scale=3):
+                        #         vtuber_character_output = gr.Interface(
+                        #         fn=self.vtuber_camera.get_frame,
+                        #         inputs=[],
+                        #         outputs=gr.Image(type="numpy", label="VTuber Camera"),
+                        #         live=True,
+                        #         submit_btn="",  # Submitボタンを非表示にする
+                        #         clear_btn=None,   # Clearボタンを非表示にする
+                        #         allow_flagging="never",  # Flagボタンを非表示にする
+                        #     )
+                        #     vtuber_character_update_button = gr.Button("変更", scale=1)
+
+                with gr.Column(scale=1):
+                    test_playback_button = gr.Audio(type="filepath", label="テスト再生")
+                    preview_images = gr.Gallery(
+                        label="画像/動画フレーム一覧", 
+                        elem_id="frame_gallery", 
+                        # scale=2,
+                        )
+
             with gr.Row():
                 with gr.Column(scale=4):
                     video_preview_output = gr.Video(label="生成された動画のプレビュー", visible=False)
@@ -249,6 +270,8 @@ class UI:
 
 
             # イベントハンドラの設定
+
+            # モデル選択ドロップダウンの変更イベント
             voice_synthesis_model_dropdown.change(
                 fn=self.handle_gallery_event.on_model_change,
                 inputs=[voice_synthesis_model_dropdown, model_list_state],
@@ -318,30 +341,29 @@ class UI:
                 show_progress=True,
             )
 
-            # Vtuberキャラクター更新ボタンのクリックイベント設定    
-            vtuber_character_update_button.click(
-                fn=self.handle_frame_event.on_update_reading_click,
-                inputs=[
-                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, 
-                    selected_index, frame_data_list_state
-                    ],
-                outputs=[
-                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
-                    selected_index, frame_data_list_state
-                    ],
-                show_progress=True,
-            )
+            # # Vtuberキャラクター更新ボタンのクリックイベント設定    
+            # vtuber_character_update_button.click(
+            #     fn=self.handle_frame_event.on_update_reading_click,
+            #     inputs=[
+            #         character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+            #         selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+            #         image_video_input, whiteboard_image_path, 
+            #         selected_index, frame_data_list_state
+            #         ],
+            #     outputs=[
+            #         character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+            #         selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+            #         image_video_input, whiteboard_image_path, preview_images, 
+            #         selected_index, frame_data_list_state
+            #         ],
+            #     show_progress=True,
+            # )
 
             # 動画準備開始ボタンのクリックイベント設定
             generate_video_button.click(
                 fn=self.generate_video.generate_video,
                 inputs=[
-                    csv_file_input, bgm_file_input, background_video_file_input, 
-                    character_name_input, model_list_state, selected_model_tuple_state, 
+                    csv_file_input, character_name_input, model_list_state, selected_model_tuple_state, 
                     reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state
                     ],
                 outputs=[
@@ -350,11 +372,11 @@ class UI:
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
-                show_progress=True,
-            ).then(
-                fn=self.handle_frame_event.setup_frame_data_list,
-                inputs=[],
-                outputs=[generate_video_button, create_video_button]
+                # show_progress=True,
+            # ).then(
+            #     fn=self.handle_frame_event.setup_frame_data_list,
+            #     inputs=[],
+            #     outputs=[generate_video_button, create_video_button]
             )
 
             # frame_data_list_state.change(
@@ -369,7 +391,7 @@ class UI:
             create_video_button.click(
                 fn=self.handle_frame_event.create_video,
                 inputs=[
-                    output_folder_input, bgm_file_input, background_video_file_input, 
+                    output_folder_input, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
