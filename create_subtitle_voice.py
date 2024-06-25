@@ -3,6 +3,7 @@ import requests
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from utils import save_as_temp_file_audio
+from katakana_converter import KatakanaConverter
 
 
 # サブテキストと読み上げを作成するクラス
@@ -10,6 +11,7 @@ class CreateSubtitleVoice:
 
     def __init__(self):
         self.character_lines = []
+        self.katakana_converter = KatakanaConverter()
 
     # CSVファイルからキャラクター・セリフ情報を取得
     def load_csv_data(self, csv_file_path):
@@ -30,8 +32,8 @@ class CreateSubtitleVoice:
     # セリフを処理
     def process_line(self, line, registered_words_table):
         subtitle_line = line
-        # カタカナに変換　→　🌟時間かかるので検討中
-        reading_line = self.translate_to_katakana(line, registered_words_table)
+        # カタカナに変換
+        reading_line = self.katakana_converter.translate_to_katakana(line)
         return subtitle_line, reading_line
 
 

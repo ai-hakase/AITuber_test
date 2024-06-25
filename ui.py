@@ -1,30 +1,16 @@
-# import asyncio
-# import numpy as np
-# import pprint
-# import asyncio
-# import numpy as np
-# import requests
 import signal
 import gradio as gr
 import json
 
-# from tkinter import filedialog
-# from moviepy.editor import VideoFileClip
-# from datetime import datetime
 from PIL import Image
 
 from vtuber_camera import VTuberCamera
-# from edit_medias import EditMedia
 
 from utils import DEFAULT_SETTINGS_FOLDER, DEFAULT_SETTING_FILE, load_settings
 from generate_video import GenerateVideo
 from create_subtitle_voice import CreateSubtitleVoice
 from handle_gallery_event import HandleGalleryEvent
 from handle_frame_event import HandleFrameEvent
-# from create_video import CreateVideo
-# from render import FrameData
-# from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
-
 
 class UI:
     def __init__(self):        

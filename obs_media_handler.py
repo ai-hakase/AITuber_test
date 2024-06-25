@@ -23,7 +23,7 @@ class OBSMediaHandler:
         # 絶対パスに変換する
         self.default_subtitle_image_path = os.path.abspath('Asset\subtitle.png')
         self.default_explanation_media_path = os.path.abspath('Asset\解説用メディアソース.png')
-
+        
 
     # オーディオファイルの再生
     def play_audio(self, audio_file, AUDIO_DEVICE_INDEX):
