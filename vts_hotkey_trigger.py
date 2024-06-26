@@ -1,16 +1,7 @@
-# vts_hotkey_trigger.py
-import sys
-import os
-import random
-import asyncio
 import websockets
 import json
-import pprint
 import yaml
-
-from render import FrameData
-
-
+import asyncio
 
 
 vts_settings_path = "vts_settings.yml"
@@ -22,26 +13,8 @@ with open(vts_settings_path, "r", encoding="utf-8") as f:
     PLUGIN_DEVELOPER = settings["PLUGIN_DEVELOPER"]
 
 
-
-# VTUBE_STUDIO_URI = VTUBE_STUDIO_URI
-# PLUGIN_NAME = PLUGIN_NAME
-# PLUGIN_DEVELOPER = PLUGIN_DEVELOPER
-# AUTHENTICATION_TOKEN = AUTHENTICATION_TOKEN
-
 class VTubeStudioHotkeyTrigger:
     def __init__(self):
-        # vts_settings.ymlの読み込み
-        # with open('vts_settings.yml', 'r', encoding='utf-8') as file:
-        #     for line in file:
-        #         if line.startswith('VTUBE_STUDIO_URI'):
-        #             self.websocket_uri = line.split(':')[1].strip()
-        #         elif line.startswith('PLUGIN_NAME'):
-        #             self.plugin_name = line.split(':')[1].strip()
-        #         elif line.startswith('PLUGIN_DEVELOPER'):
-        #             self.plugin_developer = line.split(':')[1].strip()
-        #         elif line.startswith('AUTHENTICATION_TOKEN'):
-        #             self.authentication_token = line.split(':')[1].strip()
-
         self.websocket_uri = VTUBE_STUDIO_URI
         self.plugin_name = PLUGIN_NAME
         self.plugin_developer = PLUGIN_DEVELOPER
@@ -111,14 +84,11 @@ class VTubeStudioHotkeyTrigger:
                 "apiVersion": "1.0",
                 "requestID": "UniqueRequestIDLessThan64Characters",
                 "messageType": "HotkeysInCurrentModelRequest",
-                "data": {}
+                "data": {
+                    "modelID": model_id,
+                    "live2DItemFileName": live2d_item_filename
+                }
             }
-            # request = {
-            #     "apiName": "VTubeStudioPublicAPI",
-            #     "apiVersion": "1.0",
-            #     "requestID": "GetHotkeysRequest",
-            #     "messageType": "HotkeysInCurrentModelRequest"
-            # }
 
             if model_id is not None:
                 request["data"]["modelID"] = model_id
@@ -181,14 +151,15 @@ class VTubeStudioHotkeyTrigger:
         return []
 
 
-    async def trigger_hotkey(self, hotkey_id):
+    async def trigger_hotkey(self, hotkey_id, itemInstanceID=None):
         request = {
             "apiName": "VTubeStudioPublicAPI",
             "apiVersion": "1.0",
             "requestID": "UniqueRequestIDForTriggering",
             "messageType": "HotkeyTriggerRequest",
             "data": {
-                "hotkeyID": hotkey_id
+                "hotkeyID": hotkey_id,
+                "itemInstanceID": itemInstanceID
             }
         }
 
@@ -248,3 +219,97 @@ class VTubeStudioHotkeyTrigger:
             print(f"Screenshot saved to: {response_data['data']['filePath']}")
         else:
             print("Failed to take screenshot or retrieve the file path")
+
+
+
+    async def get_available_models(self):
+        if self.is_authenticated:
+            request = {
+                "apiName": "VTubeStudioPublicAPI",
+                "apiVersion": "1.0",
+                "requestID": "SomeID",
+                "messageType": "AvailableModelsRequest"
+            }
+
+            await self.websocket.send(json.dumps(request))
+            response = await self.websocket.recv()
+
+            response_json = json.loads(response)  # ここで JSON 形式に変換
+            print(response_json)
+
+
+    async def get_current_model_id(self):
+        if self.is_authenticated:
+            request = {
+                "apiName": "VTubeStudioPublicAPI",
+                "apiVersion": "1.0",
+                "requestID": "SomeID",
+                "messageType": "CurrentModelRequest"
+            }
+
+            await self.websocket.send(json.dumps(request))
+            response = await self.websocket.recv()
+
+            response_json = json.loads(response)  # ここで JSON 形式に変換
+            print(response_json)
+
+
+    async def load_model(self, model_id):
+        if self.is_authenticated:
+            request = {
+                "apiName": "VTubeStudioPublicAPI",
+                "apiVersion": "1.0",
+                "requestID": "SomeID",
+                "messageType": "ModelLoadRequest",
+                "data": {
+                    "modelID": model_id
+                }
+            }
+
+            await self.websocket.send(json.dumps(request))
+            response = await self.websocket.recv()
+
+            response_json = json.loads(response)  # ここで JSON 形式に変換
+            print(response_json)
+
+
+#  'numberOfTextures': 3, 'textureResolution': 4096, 'modelPosition': {'positionX': 0.025965213775634766, 'positionY': 0.4059581756591797, 'rotation': 360.0, 'size': -86.47582244873047}}}
+    async def move_model(self, positionX, positionY, rotation, size):
+        if self.is_authenticated:
+            request = {
+                "apiName": "VTubeStudioPublicAPI",
+                "apiVersion": "1.0",
+                "requestID": "SomeID",
+                "messageType": "MoveModelRequest",
+                "data": {
+                    "timeInSeconds": 0,
+                    "valuesAreRelativeToModel": False,
+                    "positionX": positionX,
+                    "positionY": positionY,
+                    "rotation": rotation,
+                    "size": size
+                }
+            }
+
+            await self.websocket.send(json.dumps(request))
+            response = await self.websocket.recv()
+
+            response_json = json.loads(response)  # ここで JSON 形式に変換
+            print(response_json)
+
+
+    async def init_vts_character(self):
+        """VTube Studio のキャラクターを初期化する関数"""
+
+        await self.connect()#VTube Studio に接続
+
+        # modelName': 'customidol', 'modelID': '2c057619e3a54268b49f1c2036f44a14
+        await self.load_model("2c057619e3a54268b49f1c2036f44a14")#モデルを読み込む
+        await asyncio.sleep(1)#1秒待つ
+
+        await self.move_model(positionX=0.026, positionY=0.406, rotation=360.0, size=-86.5)#モデルを移動する
+        await asyncio.sleep(1)#1秒待つ
+
+        # {'name': 'ハカセモード1', 'file': 'AI-Hakase-v4.exp3.json', 'hotkeyID': 'f747535def7d43b29aa749290e8bd3f1'}, 
+        await self.trigger_hotkey(hotkey_id="f747535def7d43b29aa749290e8bd3f1")#ハカセモードを起動する
+

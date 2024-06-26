@@ -18,5 +18,8 @@ PLUGIN_NAME = "AI Tuber Test Program"
 PLUGIN_DEVELOPER = "AI-Hakase"
 VERTUBE_CAMERA_NUM = 1
 
+# 設定ファイルのパス
+STARTUP_SETTINGS_FILE = r"settings.yml"
+
 # グローバル変数でフレームデータリストを保持
 # frame_data_list = []

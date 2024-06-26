@@ -233,8 +233,6 @@ class HandleFrameEvent:
                 selected_index, frame_data_list_state
             ) = result
 
-        await asyncio.sleep(3)
-
         # print(f"result -> {result}")
         # print(f"current_frame_data -> {current_frame_data}")
 

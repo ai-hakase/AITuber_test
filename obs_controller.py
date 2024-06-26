@@ -1,36 +1,30 @@
 import obswebsocket
-import websockets
 import json
-import asyncio
 import threading
 import datetime
 import yaml
-import tempfile
-import base64
 import os
 
-from PIL import Image
-from utils import save_as_temp_file
-from obswebsocket import obsws, requests
+from obswebsocket import requests
+from constants import STARTUP_SETTINGS_FILE
+
+
+# 設定ファイルを読み込む
+with open(STARTUP_SETTINGS_FILE, 'r', encoding='utf-8') as file:
+    settings = yaml.load(file, Loader=yaml.FullLoader)
 
 
 class OBSController:
     def __init__(self):
-
-        # 設定ファイルを読み込む
-        with open('settings.yml', 'r', encoding='utf-8') as file:
-            settings = yaml.load(file, Loader=yaml.FullLoader)
-
-        # self.websocket_uri = f"ws://{settings['OBS_IP']}:{settings['OBS_PORT']}"
-        self.websocket_uri = settings['OBS_IP']
-        self.port = settings['OBS_PORT']
-        self.password = settings['OBS_PASSWORD']
+        self.websocket_uri = settings['OBS_IP']#OBSのIPアドレス
+        self.port = settings['OBS_PORT']#OBSのポート
+        self.password = settings['OBS_PASSWORD']#OBSのパスワード
         self.websocket = None
         self.target_scene = ""  # 監視対象のシーン名
         self.audio_thread = None
-        self.stop_event = threading.Event()
-        self.websocket = obswebsocket.obsws(self.websocket_uri, self.port, self.password)
-        self.websocket.connect()
+        self.stop_event = threading.Event()#ストリーム停止イベント
+        self.websocket = obswebsocket.obsws(self.websocket_uri, self.port, self.password)#OBS WebSocketクライアント
+        self.websocket.connect()#OBS WebSocket接続
 
         # # イベントを購読
         # self.websocket.register(self.on_event2)
@@ -189,7 +183,8 @@ class OBSController:
             overlay=True
             )
         response = self.websocket.call(request)
-        return response
+        # print(f"インプットの設定を変更しました: {response}")
+        # return response
 
 
     async def set_scene_item_enabled(self, scene_name, scene_item_id, sceneItemEnabled):

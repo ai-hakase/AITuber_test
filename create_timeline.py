@@ -32,9 +32,6 @@ class Timeline:
         """
         タイムラインの作成
         """
-        # # OBS Studio に接続
-        # await self.obs_controller.connect()
-
         # Vショートカットキーの取得
         await self.hotkey_trigger.connect()
         self.hotkeys = await self.hotkey_trigger.get_hotkeys()
@@ -44,11 +41,6 @@ class Timeline:
         self.setup_media_and_shortcut_keys()
 
         output_file_path = await self.obs_media_handler.handle_obs_sources()
-
-        # # VTS　API　切断
-        # await self.hotkey_trigger.disconnect()
-        # # OBS Studio 切断
-        # await self.obs_controller.disconnect()
 
         return output_file_path  # 文字列として返す
 

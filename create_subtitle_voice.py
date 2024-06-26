@@ -37,11 +37,11 @@ class CreateSubtitleVoice:
         return subtitle_line, reading_line
 
 
-    # 辞書機能で英語テキストのカタカナ翻訳を行う関数
-    def translate_to_katakana(self, line, registered_words_table):
-        for word, reading in registered_words_table:
-            line = line.replace(word, reading)
-        return line
+    # # 辞書機能で英語テキストのカタカナ翻訳を行う関数
+    # def translate_to_katakana(self, line, registered_words_table):
+    #     for word, reading in registered_words_table:
+    #         line = line.replace(word, reading)
+    #     return line
 
 
     # SBTV2_APIからモデル一覧を取得する関数

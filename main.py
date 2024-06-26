@@ -1,40 +1,71 @@
 import asyncio
 import os
-import venv
 import subprocess
-import time
-import sounddevice as sd
+import yaml
 
 from ui import UI
+from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
 from setup_ai_tuber_tools import StyleBertVITS2API
+from constants import STARTUP_SETTINGS_FILE
 
 
-# async def wait_for_process_with_timeout(process_name, window_title, timeout=20):
-#     """プロセスが終了するのを待つ関数 (タイムアウト付き)"""
-#     start_time = time.time()
-#     while time.time() - start_time < timeout:
-#         if not is_process_running("python.exe") and "server_fastapi.py" not in subprocess.check_output(['tasklist', '/FI', 'IMAGENAME eq python.exe', '/FI', 'WINDOWTITLE eq server_fastapi.py'], encoding='cp932'):
-#         # if not is_process_running(process_name, window_title):
-#             return True  # プロセスが終了
-#         await asyncio.sleep(1)  # 1秒待機
-#     return False  # タイムアウト
+# 設定ファイルを読み込む
+with open(STARTUP_SETTINGS_FILE, "r", encoding="utf-8") as f:
+    settings = yaml.load(f, Loader=yaml.FullLoader)
+
+    OBS_SHORTCUT_PATH = settings["OBS_SHORTCUT_PATH"]
+    VTUBE_STUDIO_SHORTCUT_PATH = settings["VTUBE_STUDIO_SHORTCUT_PATH"]
 
 
+def is_process_running(process_name):
+    """プロセスが実行中かどうかを確認する関数"""
+    output = subprocess.check_output(['tasklist', '/FI', f'IMAGENAME eq {process_name}'], encoding='cp932')
+    return process_name in output
 
-def main():
-# async def main():
-    sbv2_api = StyleBertVITS2API()
 
-    # loop = asyncio.get_event_loop()
+def start_process(process_path):
+    """プロセスを起動する関数"""
+    subprocess.Popen(process_path, shell=True)
+
+
+async def start_vts_studio():
+    """VTube Studioを起動する関数"""
+    start_process(VTUBE_STUDIO_SHORTCUT_PATH)
+    await asyncio.sleep(20)#25秒待つ
+    vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
+    await vts_hotkey_trigger.init_vts_character()
+
+
+async def main():
+    """メイン関数"""
+
+    # OBSが実行中かどうかを確認
+    if is_process_running("obs64.exe"):
+        print("OBSは既に実行中です。")
+    else:
+        print("OBSを起動します。")
+        start_process(OBS_SHORTCUT_PATH)
+
+
+    # VTube Studioが実行中かどうかを確認
+    if is_process_running("VTube Studio.exe"):
+        print("VTube Studioは既に実行中です。")
+    else:
+        print("VTube Studioを起動します。")
+        asyncio.create_task(start_vts_studio())#非同期でVTube Studioを起動
+
 
     # Style-Bert-VITS2のAPIが実行中かどうかを確認
+    sbv2_api = StyleBertVITS2API()
+
     if sbv2_api.check_port():
         print("Style-Bert-VITS2のAPIは既に実行中です。")
     else:
         print("Style-Bert-VITS2のAPIは実行していません。実行されるまで待機します。")
         # 別のターミナルで setup_ai_tuber_tools.py を実行
         subprocess.Popen(["start", "python", "setup_ai_tuber_tools.py"], shell=True)
-        time.sleep(30)
+        await asyncio.sleep(25)#25秒待つ
+
 
     # 仮想環境を有効化
     venv_dir = os.path.join(os.path.expanduser("~"), "venv")
@@ -42,30 +73,12 @@ def main():
     # activateスクリプトを実行
     subprocess.run([activator], shell=True)
 
+
+    # UIを作成
     ui = UI()
     ui.create_ui()
 
-    # # イベントループが既に実行中かどうかを確認
-    # if not loop.is_running():
-    #     # 実行中でない場合、新しいイベントループを実行
-    #     asyncio.run(main())
-    # else:
-    #     # 実行中の場合、既存のイベントループでコルーチンを実行
-    #     loop.create_task(main())
-
-    # try:
-    #     # loop.run_until_complete(ui.create_ui())
-    #     loop.run_until_complete(await ui.create_ui())
-        
-    # except ConnectionResetError as e:
-    #     # 無視して処理を続ける
-    #     pass
-
-    # finally:
-    #     loop.run_until_complete(loop.shutdown_asyncgens())
-    #     loop.close()
-
 
 if __name__ == "__main__":
-    # asyncio.run()
-    main()
+    asyncio.run(main())
+

@@ -1,10 +1,10 @@
 import os
-import subprocess
+import shutil
 import asyncio
 
 from render import FrameData
 from create_timeline import Timeline
-from moviepy.config import change_settings
+from constants import DEFAULT_OUTPUTS_FOLDER
 
 
 class CreateVideo:
@@ -20,6 +20,20 @@ class CreateVideo:
 
         print(f"動画の作成が完了しました: {output_file}")
 
-        # output_file = os.path.abspath(output_file)
+        await asyncio.sleep(3)
 
-        return output_file
+        # output_fileをoutputsディレクトリに移動
+        new_file_path = os.path.join(DEFAULT_OUTPUTS_FOLDER, os.path.basename(output_file))
+        try:
+            shutil.move(output_file, new_file_path)
+            print(f"動画を {new_file_path} に移動しました。")
+        except FileNotFoundError:
+            print(f"エラー: ファイル {output_file} が見つかりません。")
+        except PermissionError:
+            print(f"エラー: {new_file_path} への書き込み権限がありません。")
+        except Exception as e:
+            print(f"エラー: ファイル移動中にエラーが発生しました: {e}")
+
+        return new_file_path
+
+        # return output_file

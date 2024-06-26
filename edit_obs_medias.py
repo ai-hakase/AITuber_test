@@ -78,14 +78,12 @@ class EditOBSMedias:
 
         # シーンアイテムのトランスフォームを変更
         scene_item_transform = {
-                                "positionX": position_x, 
-                                "positionY": position_y, 
-                                "scaleX": scale_x, 
-                                "scaleY": scale_y, 
+                                "positionX": position_x, "positionY": position_y, 
+                                "scaleX": scale_x, "scaleY": scale_y, 
                                 }
         await self.obs_controller.set_scene_item_transform(scene_name, scene_item_id, scene_item_transform)
 
         # シーンアイテムのトランスフォームを取得
-        scene_item_transform = await self.obs_controller.get_scene_item_transform(scene_name, scene_item_id)
+        # scene_item_transform = await self.obs_controller.get_scene_item_transform(scene_name, scene_item_id)
         # print(f"シーンアイテムのトランスフォームを取得: {scene_item_transform}")
 
