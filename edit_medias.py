@@ -13,7 +13,7 @@ from obs_controller import OBSController
 class EditMedia:
 
     def __init__(self):
-        self.pending_message_lock = asyncio.Lock()# メッセージを待ち受けるためのロック
+        # self.pending_message_lock = asyncio.Lock()# メッセージを待ち受けるためのロック
 
         # インスタンスを準備
         self.vtuber_camera = VTuberCamera()# カメラを準備

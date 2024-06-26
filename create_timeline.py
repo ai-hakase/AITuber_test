@@ -40,9 +40,9 @@ class Timeline:
         # 音声ファイルと画像リストとショートカットキーの準備
         self.setup_media_and_shortcut_keys()
 
-        output_file_path = await self.obs_media_handler.handle_obs_sources()
+        obs_video_file_path = await self.obs_media_handler.handle_obs_sources()
 
-        return output_file_path  # 文字列として返す
+        return obs_video_file_path  # 文字列として返す
 
 
     def setup_media_and_shortcut_keys(self):

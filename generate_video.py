@@ -1,18 +1,11 @@
-import threading
-import asyncio
-import tkinter as tk
-import pygame
-import time
-import cv2
-import nest_asyncio
-
 from PIL import Image
-from utils import process_transparentize_green_back, save_as_temp_file, load_image_or_video, delete_tmp_files, capture_first_frame
+from utils import save_as_temp_file, delete_tmp_files
 from edit_medias import EditMedia
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
 from create_subtitle_voice import CreateSubtitleVoice
 from setup_vtuber_keys import SetupVtuberKeys
 from render import FrameData
+from katakana_converter import KatakanaConverter
 
 
 class GenerateVideo:
@@ -25,6 +18,7 @@ class GenerateVideo:
         self.create_subtitle_voice = CreateSubtitleVoice()
         self.setup_vtuber_keys = SetupVtuberKeys()
         self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
+        self.katakana_converter = KatakanaConverter()
         # self.handle_frame_event = HandleFrameEvent()
 
         # メインキャラクター
@@ -69,6 +63,7 @@ class GenerateVideo:
         return await self.edit_medias.create_obs_screenshot_image(source_name)
 
 
+
     def generate_preview_image(self, explanation_media_path, subtitle_image_path):
         """
         プレビュー画像を生成する関数
@@ -104,9 +99,12 @@ class GenerateVideo:
         return preview_image_path
 
 
-    def generate_video(self, csv_file_input, 
-                    character_name_input, model_list_state, selected_model_tuple_state, 
-                    reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state):
+    def generate_video_frames(self, 
+                                csv_file_input, 
+                                character_name_input, reading_speed_slider, voice_synthesis_model_dropdown, 
+                                sub_character_name_input, sub_reading_speed_slider, sub_voice_synthesis_model_dropdown,
+                                model_list_state, 
+                                registered_words_table, emotion_shortcuts_state, actions_state):
         """
         動画生成の主要な処理を行う関数
         """
@@ -119,18 +117,14 @@ class GenerateVideo:
 
         delete_tmp_files() #tmpフォルダーの中身を全て削除する
 
+        # 半角スペースで区切られた単語を分割し、重複を避けて辞書に追加・設定ファイルを更新
+        # self.katakana_converter.split_words()
+
         self.main_character = character_name_input#メインキャラクターを設定
+        # print(f"model_list_state: {model_list_state}")
 
         # CSVファイルからキャラクター・セリフ情報を取得
         character_lines = self.create_subtitle_voice.load_csv_data(csv_file_input)#キャラクター・セリフ情報を取得
-
-        # 選択された音声合成モデルの名前
-        if selected_model_tuple_state:#選択されたモデルがある場合
-            selected_model = selected_model_tuple_state#選択されたモデルを取得
-        else:#選択されたモデルがない場合
-            selected_model = model_list_state[1]#選択されたモデルを取得
-        model_name, model_id, speaker_id = selected_model#選択されたモデルの情報を取得
-        # print(f"選択されたモデル: {model_name}, モデルID: {model_id}, 話者ID: {speaker_id}")
 
         # # OBSの背景・Vキャラ・Vキャラ画像を取得
         self.obs_background_image = self.edit_medias.create_obs_screenshot_image("background")
@@ -145,14 +139,35 @@ class GenerateVideo:
         self.obs_whiteboard_image_path = save_as_temp_file(self.obs_whiteboard_image)
         self.obs_subtitle_image_path = save_as_temp_file(self.obs_subtitle_image)
 
+
         # キャラクター・セリフ情報を処理
         for character, line in character_lines:
+
+            if character == self.main_character:
+                voice_synthesis_model = voice_synthesis_model_dropdown
+                # if voice_synthesis_model_dropdown == None:
+                #     voice_synthesis_model = model_list_state[1][0]
+                reading_speed = reading_speed_slider
+                voice_style = "NeutralamazinGood(onmygod)"
+                
+            elif character == sub_character_name_input:
+                voice_synthesis_model = sub_voice_synthesis_model_dropdown
+                # if sub_voice_synthesis_model_dropdown == None:
+                #     voice_synthesis_model = model_list_state[0][0]
+                reading_speed = sub_reading_speed_slider
+                voice_style = "Neutral"
+            
             # 元のセリフを字幕用として変数に保持します。
             # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
-            subtitle_line, reading_line = self.create_subtitle_voice.process_line(line, registered_words_table)
+            subtitle_line, reading_line = self.create_subtitle_voice.process_line(line)
     
+            # 選択された音声合成モデルの名前を取得
+            print(f"voice_synthesis_model: {voice_synthesis_model}")
+            selected_model_tuple = self.create_subtitle_voice.get_selected_mode_id(voice_synthesis_model, model_list_state)
+
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
-            audio_file = self.create_subtitle_voice.generate_audio(subtitle_line, reading_line, model_name, model_id, speaker_id, reading_speed_slider)
+            audio_file = self.create_subtitle_voice.generate_audio(
+                                subtitle_line, reading_line, selected_model_tuple, reading_speed, voice_style)
 
             # キャラクター事にショートカットキーを選択
             emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
@@ -170,7 +185,8 @@ class GenerateVideo:
                 subtitle_line=subtitle_line,
                 reading_line=reading_line,
                 reading_speed=reading_speed_slider,
-                selected_model=selected_model,
+                selected_model=selected_model_tuple,
+                voice_style=voice_style,
                 audio_file=audio_file,
                 emotion_shortcut=emotion_shortcut,
                 motion_shortcut=motion_shortcut,
@@ -178,7 +194,7 @@ class GenerateVideo:
                 # explanation_image_path=self.default_explanation_image_path,
                 whiteboard_image_path=self.obs_whiteboard_image_path,
                 subtitle_image_path=subtitle_image_path,
-                preview_image=preview_image_path
+                preview_image=preview_image_path,
             )
             self.frame_data_list.append(frame_data)
 

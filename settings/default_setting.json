@@ -4,6 +4,7 @@
     "voice_synthesis_model": "AI-Hakase-v1",
     "sub_voice_synthesis_model": "AI-Hakase-Test2",
     "reading_speed": 0.92,
+    "sub_reading_speed": 0.92,
     "output_folder": "outputs",
     "bgm_file": "bgm\\default_bgm.wav",
     "background_video_file": "background_video\\default_video.mp4",

@@ -1,5 +1,6 @@
 import csv
 import requests
+
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from utils import save_as_temp_file_audio
@@ -30,7 +31,7 @@ class CreateSubtitleVoice:
 
 
     # セリフを処理
-    def process_line(self, line, registered_words_table):
+    def process_line(self, line):
         subtitle_line = line
         # カタカナに変換
         reading_line = self.katakana_converter.translate_to_katakana(line)
@@ -50,6 +51,9 @@ class CreateSubtitleVoice:
     #     ("AI-Hakase-Test2", "0", 0),
     #     ("AI-Hakase-v1", "1", 0)
     def fetch_voice_synthesis_models(self):
+        """
+        SBTV2_APIからモデル一覧を取得する関数
+        """
         response = requests.get("http://127.0.0.1:5000/models/info")  # 適切なAPIエンドポイントに置き換えてください
         if response.status_code == 200:
             models = response.json()
@@ -66,10 +70,42 @@ class CreateSubtitleVoice:
             return [], []
 
 
+
+    def get_selected_mode_id(self, voice_synthesis_model_dropdown, model_list_state):
+        """
+        音声合成モデルドロップダウンの変更イベントに関数をバインド
+        
+        Args:
+            voice_synthesis_model_dropdown (str): 音声合成モデルドロップダウン
+            model_list_state (list): モデルリストの状態
+        """
+        if voice_synthesis_model_dropdown:
+            selected_model_tuple = next(
+                    (model for model in model_list_state if model[0] == voice_synthesis_model_dropdown), None)
+        else:
+            print("選択されたモデルが見つかりません。")
+
+        return selected_model_tuple
+
+
+
     # 音声ファイルを生成する関数
     def generate_audio(self, 
                        subtitle_line, reading_line, 
-                       model_name, model_id, speaker_id, reading_speed_slider):
+                       selected_model_tuple, reading_speed_slider, voice_style):
+        """
+        音声ファイルを生成する関数
+        Args:
+            subtitle_line (str): セリフ
+            reading_line (str): 読み上げ
+            selected_model_tuple (tuple): 選択されたモデルの名前、id、話者id
+            reading_speed_slider (int): 読み上げ速度
+            voice_style (str): 音声スタイル
+        """
+        # 選択されたモデルの名前、id、話者idを取得
+        print(f"selected_model_tuple: {selected_model_tuple}")
+        model_name, model_id, speaker_id = selected_model_tuple
+        
         # リクエストヘッダー
         headers = {
             "accept": "audio/wav"
@@ -102,7 +138,8 @@ class CreateSubtitleVoice:
             'assist_text': assist_text,  # 補助テキスト（読み上げと似た声音・感情になりやすい）
             'assist_text_weight': 1.0,  # 補助テキストの影響の強さ
             # 'style': 'Neutral',  # 音声のスタイル
-            'style': 'NeutralamazinGood(onmygod)',  # 音声のスタイル
+            # 'style': 'NeutralamazinGood(onmygod)',  # 音声のスタイル
+            'style': voice_style,  # 音声のスタイル
             'style_weight': 2.5,  # スタイルの強さ
             # 'reference_audio_path': r"test\AI-Hakase_Voice-26S.MP3",  # 参照オーディオパス（スタイルを音声ファイルで指定）
         }

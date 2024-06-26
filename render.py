@@ -8,6 +8,7 @@ class FrameData:
     reading_line: str
     reading_speed: float
     selected_model: Tuple[str, str, str]
+    voice_style: str
     audio_file: str
     emotion_shortcut: str
     motion_shortcut: str

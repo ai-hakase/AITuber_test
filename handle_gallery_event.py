@@ -13,12 +13,30 @@ from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
 
 
 class HandleGalleryEvent:
+    """
+    ギャラリーイベントを処理するクラス
+    """
+
     def __init__(self):
+        """
+        コンストラクタ
+        """
+        # VTubeStudioHotkeyTrigger インスタンスを作成
         self.vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
 
 
     # アップロードされたファイルの種類に応じてプレビューを更新する関数
     def update_preview(self, file):
+        """
+        プレビューを更新する関数
+        
+        Args:
+            file (str): ファイルパス
+        
+        ファイルがNoneの場合は、プレビューを非表示にする
+        ファイルが画像または動画の場合は、プレビューを表示する
+        ファイルがそれ以外の場合は、プレビューを非表示にする
+        """
         if file is None:
             return gr.update(visible=False), gr.update(visible=False)
         
@@ -37,69 +55,42 @@ class HandleGalleryEvent:
         return gr.update(visible=False), gr.update(visible=False)
 
 
-
-    # #　グローバル変数にリストを格納 → 最初に更新
-    # def update_frame_data_list(self, frame_data):
-    #     global frame_data_list
-    #     if frame_data_list is None:
-    #         frame_data_list = frame_data
-    #         # print("frame_data_list:", frame_data_list)  # デバッグ用にデータを出力
-    #         return self.update_ui_elements(0)
-    #     else:
-    #         print("No data:", frame_data_list)  # デバッグ用にデータを出力
-    #         return None, None, None, None, None, None
-
-
-    # # 読み方用のテキストエリアでEnterキーが押されたときの処理
-    # def on_reading_input_submit(self, evt, subtitle_line, reading_line, image_video_input):
-    #     if evt.key == "Enter":
-    #         return on_update_reading_click(subtitle_line, reading_line, image_video_input)
-    #     return gr.update()
-
-
-
-
-    # 画像/動画選択ボタンがクリックされたときの処理
     def on_delete_image_video_click(self):
-        return gr.update(label="画像/動画選択", value=None, file_types=["image", "video"], interactive=True), gr.update(value=None, visible=False), gr.update(value=None, visible=False), gr.update(visible=False)
+        """
+        画像/動画選択ボタンがクリックされたときの処理
+        """
+        # プレビューを非表示にする
+        return (gr.update(label="画像/動画選択", value=None, file_types=["image", "video"], interactive=True),
+                gr.update(value=None, visible=False),
+                gr.update(value=None, visible=False),
+                gr.update(visible=False))
+    
 
-
-
-
-    # # 変数をコンソールに書き出す関数
-    # def print_variables(self):
-    #     variables = {
-    #         "CSVファイル": csv_file_input.value['path'],
-    #         "BGMファイル": bgm_file_input.value['path'],
-    #         "背景動画ファイル": background_video_file_input.value['video']['path'],
-    #         "subtitle_line": subtitle_input.value,
-    #         "reading_line": reading_input.value,
-    #         "image_video_input": image_video_input,
-    #         "image_video_input.value": image_video_input.value,
-    #         "キャラクター名.value": character_name_input.value,
-    #         "キャラクター名": character_name_input,
-    #         "音声合成モデル": voice_synthesis_model_dropdown.value,
-    #         "読み上げ速度": reading_speed_slider.value,
-    #         "登録済み単語/文章一覧": registered_words_table.value['data'],
-    #         "感情ショートカット emotion_shortcuts_state": emotion_shortcuts_state.value,
-    #         "アクション actions_state": actions_state.value,
-    #         "動画保存先": output_folder_input.value,
-    #         "設定ファイルパス": settings_file_path_input.value,
-    #     }
-    #     pprint.pprint(variables)
-
-
-    # ドロップダウンの変更イベントに関数をバインド
     def on_model_change(self, voice_synthesis_model_dropdown, model_list_state):
+        """
+        音声合成モデルドロップダウンの変更イベントに関数をバインド
+        
+        Args:
+            voice_synthesis_model_dropdown (str): 音声合成モデルドロップダウン
+            model_list_state (list): モデルリストの状態
+        """
         if voice_synthesis_model_dropdown:
-            selected_model_tuple = next((model for model in model_list_state if model[0] == voice_synthesis_model_dropdown), None)
+            selected_model_tuple = next(
+                    (model for model in model_list_state if model[0] == voice_synthesis_model_dropdown), None)
         else:
             print("選択されたモデルが見つかりません。")
+
+        # 選択されたモデルを返す
         return selected_model_tuple
 
     
-    # アクションのショートカットを平坦化する関数
     def flatten_actions(self, actions):
+        """
+        アクションのショートカットを平坦化する関数
+
+        Args:
+            actions (dict): アクションのショートカット
+        """
         flat_actions = []
         for action, shortcuts in actions.items():
             for shortcut in shortcuts:
@@ -107,16 +98,23 @@ class HandleGalleryEvent:
         return flat_actions
     
 
-    # ホットキーを読み込む
     async def load_hotkeys(self):
+        """
+        ホットキーを読み込む関数
+        """
         await self.vts_hotkey_trigger.connect()
+        # ホットキーを取得
         hotkeys = await self.vts_hotkey_trigger.get_hotkeys()
+        # ホットキーを切断
         await self.vts_hotkey_trigger.disconnect()
-        # return hotkeys
+        # ホットキーを返す
         return  [[hotkey['name'], hotkey['file'], hotkey['hotkeyID']] for hotkey in hotkeys]
 
-    # オーディオデバイスを読み込む
+
     async def load_audio_devices(self):
+        """
+        オーディオデバイスを読み込む関数
+        """
         #オーディオデバイスの一覧を取得する
         devices = sd.query_devices()
 
@@ -183,7 +181,7 @@ class HandleGalleryEvent:
                 word, reading = items[i], items[i + 1]
                 if not word in dics:
                     dics[word] = reading
-                    print(f"新しく追加した文字: {[word, reading]}")
+                    # print(f"新しく追加した文字: {[word, reading]}")
 
         # 読み方登録辞書を更新
         settings["dics"] = dics
@@ -199,7 +197,7 @@ class HandleGalleryEvent:
         return [[word, reading] for word, reading in dics.items()]
 
 
-    def update_dics_from_table(self, table_data):
+    def update_dics_from_table(self, registered_words_table):
         """Dataframe の値から辞書を更新するメソッド
 
         Args:
@@ -213,7 +211,12 @@ class HandleGalleryEvent:
         old_dics = settings["dics"]
 
         # DataFrame を辞書に変換
-        dics = {row['単語/文章']: row['読み方'] for _, row in table_data.iterrows() if row['単語/文章'] and row['読み方']}
+        print(f"registered_words_table: {registered_words_table}")
+
+            # DataFrame を辞書に変換
+        dics = {row[0]: row[1] for row in registered_words_table if row[0] and row[1]}
+
+        # dics = {row['単語/文章']: row['読み方'] for _, row in registered_words_table.iterrows() if row['単語/文章'] and row['読み方']}
         # print(f"dics: {dics}")
         # print(f"table_data: {table_data}")
         
@@ -233,21 +236,29 @@ class HandleGalleryEvent:
         return [[word, reading] for word, reading in settings["dics"].items()]
 
 
-    # 読み方を更新する
     def load_dics(self):
+        """
+        読み方を更新する関数
+        """
         with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
             settings = json.load(f)
-        return [[word, reading] for word, reading in settings["dics"].items()]
+        dics = [[word, reading] for word, reading in settings["dics"].items()]
+        return dics
 
 
-    # 感情ショートカットを更新する
     def load_emotion_shortcuts(self):
+        """
+        感情ショートカットを更新する関数
+        """
         with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
             settings = json.load(f)
         return [[emotion, shortcuts] for emotion, shortcuts in settings["emotion_shortcuts"].items()]
 
-    # アクションショートカットを更新する
+
     def load_actions(self):
+        """
+        アクションショートカットを更新する関数
+        """
         with open(DEFAULT_SETTING_FILE, 'r', encoding='utf-8') as f:
             settings = json.load(f)
         return [[action, shortcuts] for action, shortcuts in settings["actions"].items()]
@@ -345,3 +356,43 @@ class HandleGalleryEvent:
 #     output_folder_input.value = selected_folder
 
 
+    # #　グローバル変数にリストを格納 → 最初に更新
+    # def update_frame_data_list(self, frame_data):
+    #     global frame_data_list
+    #     if frame_data_list is None:
+    #         frame_data_list = frame_data
+    #         # print("frame_data_list:", frame_data_list)  # デバッグ用にデータを出力
+    #         return self.update_ui_elements(0)
+    #     else:
+    #         print("No data:", frame_data_list)  # デバッグ用にデータを出力
+    #         return None, None, None, None, None, None
+
+
+    # # 読み方用のテキストエリアでEnterキーが押されたときの処理
+    # def on_reading_input_submit(self, evt, subtitle_line, reading_line, image_video_input):
+    #     if evt.key == "Enter":
+    #         return on_update_reading_click(subtitle_line, reading_line, image_video_input)
+    #     return gr.update()
+
+
+    # # 変数をコンソールに書き出す関数
+    # def print_variables(self):
+    #     variables = {
+    #         "CSVファイル": csv_file_input.value['path'],
+    #         "BGMファイル": bgm_file_input.value['path'],
+    #         "背景動画ファイル": background_video_file_input.value['video']['path'],
+    #         "subtitle_line": subtitle_input.value,
+    #         "reading_line": reading_input.value,
+    #         "image_video_input": image_video_input,
+    #         "image_video_input.value": image_video_input.value,
+    #         "キャラクター名.value": character_name_input.value,
+    #         "キャラクター名": character_name_input,
+    #         "音声合成モデル": voice_synthesis_model_dropdown.value,
+    #         "読み上げ速度": reading_speed_slider.value,
+    #         "登録済み単語/文章一覧": registered_words_table.value['data'],
+    #         "感情ショートカット emotion_shortcuts_state": emotion_shortcuts_state.value,
+    #         "アクション actions_state": actions_state.value,
+    #         "動画保存先": output_folder_input.value,
+    #         "設定ファイルパス": settings_file_path_input.value,
+    #     }
+    #     pprint.pprint(variables)

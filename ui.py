@@ -2,11 +2,9 @@ import signal
 import gradio as gr
 import json
 
-from PIL import Image
-
 from vtuber_camera import VTuberCamera
 
-from utils import DEFAULT_SETTINGS_FOLDER, DEFAULT_SETTING_FILE, load_settings
+from utils import DEFAULT_SETTINGS_FOLDER, DEFAULT_SETTING_FILE
 from generate_video import GenerateVideo
 from create_subtitle_voice import CreateSubtitleVoice
 from handle_gallery_event import HandleGalleryEvent
@@ -29,7 +27,10 @@ class UI:
 
         self.character_name = settings["character_name"]
         self.voice_synthesis_model = settings["voice_synthesis_model"]
+        self.sub_character_name = settings["sub_character_name"]
+        self.sub_voice_synthesis_model = settings["sub_voice_synthesis_model"]
         self.reading_speed = settings["reading_speed"]
+        self.sub_reading_speed = settings["sub_reading_speed"]
         self.output_folder = settings["output_folder"]
         self.bgm_file = settings["bgm_file"]
         self.background_video_file = settings["background_video_file"]
@@ -52,6 +53,7 @@ class UI:
 
             # 一時的な出力を受け取るための隠しコンポーネント
             selected_model_tuple_state = gr.State()# 選択されたモデルのタプルを保持するための変数
+            sub_selected_model_tuple_state = gr.State()# 選択されたモデルのタプルを保持するための変数
             emotion_shortcuts_state = gr.State(self.emotion_shortcuts)
             actions_state = gr.State(self.actions)
             selected_index = gr.State(0)
@@ -88,10 +90,10 @@ class UI:
                                 reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度", interactive=True)
                             with gr.Column(scale=1):
                                 # キャラ
-                                sub_character_name_input = gr.Textbox(label="サブキャラクター名", interactive=True)
+                                sub_character_name_input = gr.Textbox(label="サブキャラクター名", value=self.sub_character_name, interactive=True)
                                 # model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
-                                voice_synthesis_model_dropdown2 = gr.Dropdown(model_names, label="音声合成モデル", interactive=True)
-                                reading_speed_slider2 = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度", interactive=True)
+                                sub_voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.sub_voice_synthesis_model, interactive=True)
+                                sub_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.sub_reading_speed, step=0.01, label="読み上げ速度", interactive=True)
 
                         # 読み方を登録するボタンを追加
                         with gr.Row():
@@ -186,9 +188,12 @@ class UI:
                     with gr.Tab("テキスト・画像・動画編集"):
                         with gr.Row():
                             with gr.Column(scale=3):
-                                character_name = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
+                                with gr.Row():
+                                    character_name = gr.Textbox(label="キャラクター名", interactive=True)
+                                    voice_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル")
                                 subtitle_input = gr.Textbox(label="セリフ（字幕用）", lines=2)
                                 reading_input = gr.Textbox(label="セリフ（読み方）", lines=2)
+                                update_subtitle_reading_button = gr.Button("字幕をもとに、読み方を自動変更",scale=1)
                                 update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
                             with gr.Row():
                                 update_reading_button = gr.Button("変更",scale=1)
@@ -220,11 +225,17 @@ class UI:
                         # preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", interactive=True)
                         # preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True)
 
-                    with gr.Tab("Vキャラ・モーション設定"):
+                    with gr.Tab("Vキャラ・モーション設定、字幕・読み方を一括変更＋辞書登録"):
+                    # with gr.Tab("Vキャラ・モーション設定"):
+
                         # character_position_slider = gr.Slider(minimum=0, maximum=100, step=1, label="キャラクター位置")
                         # character_size_slider = gr.Slider(minimum=50, maximum=200, step=1, label="キャラクターサイズ")
                         emotion_dropdown = gr.Dropdown(label="表情選択")#, choices=["neutral", "happy", "sad", "angry"])
                         motion_dropdown = gr.Dropdown(label="モーション選択")#, choices=["idle", "nod", "shake", "point"])
+
+                        word_input = gr.Textbox(label="単語/文章", lines=1)
+                        word_reading_input = gr.Textbox(label="読み方", lines=1)
+                        update_word_reading_button = gr.Button("一括変更",scale=1)
                         # with gr.Row():
                         #     with gr.Column(scale=3):
                         #         vtuber_character_output = gr.Interface(
@@ -261,6 +272,13 @@ class UI:
                 outputs=selected_model_tuple_state
             )
 
+            # モデル選択ドロップダウンの変更イベント
+            sub_voice_synthesis_model_dropdown.change(
+                fn=self.handle_gallery_event.on_model_change,
+                inputs=[sub_voice_synthesis_model_dropdown, model_list_state],
+                outputs=sub_selected_model_tuple_state
+            )
+
             # 読み方登録ボタンのクリックイベント
             register_reading_button.click(
                 # self.dics　を引数で渡す
@@ -295,11 +313,12 @@ class UI:
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
+                    model_list_state, voice_model_dropdown,
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
@@ -313,16 +332,57 @@ class UI:
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
+                    model_list_state, voice_model_dropdown,
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
                 show_progress=True,
             )
+
+            # 字幕・読み方を同時変更
+            update_subtitle_reading_button.click(
+                fn=self.handle_frame_event.update_subtitle_reading,
+                inputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
+                    model_list_state, voice_model_dropdown, 
+                    selected_index, frame_data_list_state
+                    ],
+                outputs=[
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+            )
+
+
+            # 字幕・読み方を一括変更＋辞書登録
+            update_word_reading_button.click(
+                fn=self.handle_frame_event.handle_update_word_reading_button,
+                inputs=[
+                    word_input, word_reading_input,
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
+                    selected_index, frame_data_list_state
+                    ],
+                outputs=[
+                    registered_words_table,
+                    character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_index, frame_data_list_state
+                    ],
+            )
+
+
 
             # # Vtuberキャラクター更新ボタンのクリックイベント設定    
             # vtuber_character_update_button.click(
@@ -344,14 +404,17 @@ class UI:
 
             # 動画準備開始ボタンのクリックイベント設定
             generate_video_button.click(
-                fn=self.generate_video.generate_video,
+                fn=self.generate_video.generate_video_frames,
                 inputs=[
-                    csv_file_input, character_name_input, model_list_state, selected_model_tuple_state, 
-                    reading_speed_slider, registered_words_table, emotion_shortcuts_state, actions_state
+                    csv_file_input, 
+                    character_name_input, reading_speed_slider, voice_synthesis_model_dropdown, 
+                    sub_character_name_input, sub_reading_speed_slider, sub_voice_synthesis_model_dropdown,
+                    model_list_state, 
+                    registered_words_table, emotion_shortcuts_state, actions_state,
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
@@ -380,11 +443,9 @@ class UI:
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
                     ],
-                # outputs=[
-                #     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                    voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state, 
                     video_preview_output
@@ -398,13 +459,3 @@ class UI:
             demo.load(fn=self.handle_gallery_event.load_hotkeys, inputs=[], outputs=hotkeys_data)
             demo.load(fn=self.handle_gallery_event.load_audio_devices, inputs=[], outputs=audio_devices)
         demo.launch()
-
-
-# async def launch():
-#     # asyncio.create_task(capture_frames(VTUBE_STUDIO_URI, PLUGIN_NAME, PLUGIN_DEVELOPER))
-#     asyncio.run(launch())
-    # create_ui()
-
-# if __name__ == "__main__":
-#     pass
-
