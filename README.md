@@ -8,9 +8,9 @@
 
 ## スクリーンショット
 
-![プロジェクトのスクリーンショット1](Asset/sample_image(1).png)
+![プロジェクトのスクリーンショット1](Asset/sample3.png)
 
-![プロジェクトのスクリーンショット2](Asset/sample_image(2).png)
+![プロジェクトのスクリーンショット2](Asset/sample4.png)
 
 ## 設計書
 
