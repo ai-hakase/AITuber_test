@@ -10,7 +10,7 @@
     "sub_voice_style": "テンション高めNeutralfineCrystal(fine)",
     "sub_voice_style_strength": 3,
     "sub_pitch_up_strength": 0.3,
-    "sub_reading_speed": 1.2,
+    "sub_reading_speed": 1.15,
     "output_folder": "outputs",
     "bgm_file": "bgm\\default_bgm.wav",
     "background_video_file": "background_video\\default_video.mp4",

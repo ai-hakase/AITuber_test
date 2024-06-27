@@ -50,13 +50,13 @@ class HandleFrameEvent:
         # 各要素を抽出
         frame_data: FrameData = frame_data_list[selected_index]
         character_name = frame_data.character_name
-        reading_speed_slider = frame_data.reading_speed
         subtitle_input = frame_data.subtitle_line
         reading_input = frame_data.reading_line
         voice_model_dropdown = frame_data.selected_model[0]
         voice_style_input = frame_data.voice_style
         voice_style_strength_slider = frame_data.voice_style_strength
         pitch_up_strength_slider = frame_data.pitch_up_strength
+        reading_speed_slider = frame_data.reading_speed
         test_playback_button = frame_data.audio_file
         emotion_dropdown = frame_data.emotion_shortcut
         motion_dropdown = frame_data.motion_shortcut

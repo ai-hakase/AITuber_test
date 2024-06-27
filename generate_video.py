@@ -186,7 +186,7 @@ class GenerateVideo:
                 character_name=character,
                 subtitle_line=subtitle_line,
                 reading_line=reading_line,
-                reading_speed=reading_speed_slider,
+                reading_speed=reading_speed,
                 selected_model=selected_model_tuple,
                 voice_style=voice_style,
                 voice_style_strength=voice_style_strength,
