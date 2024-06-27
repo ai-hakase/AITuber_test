@@ -11,6 +11,7 @@ from render import FrameData
 from edit_medias import EditMedia
 from handle_gallery_event import HandleGalleryEvent
 from katakana_converter import KatakanaConverter
+from constants import TALK_CHARACTER
 
 
 
@@ -53,6 +54,8 @@ class HandleFrameEvent:
         subtitle_input = frame_data.subtitle_line
         reading_input = frame_data.reading_line
         voice_model_dropdown = frame_data.selected_model[0]
+        voice_style_input = frame_data.voice_style
+        voice_style_strength_slider = frame_data.voice_style_strength
         test_playback_button = frame_data.audio_file
         emotion_dropdown = frame_data.emotion_shortcut
         motion_dropdown = frame_data.motion_shortcut
@@ -63,6 +66,7 @@ class HandleFrameEvent:
 
         return (
             character_name, subtitle_input, reading_input, reading_speed_slider, 
+            voice_style_input, voice_style_strength_slider, 
             voice_model_dropdown,test_playback_button, emotion_dropdown, motion_dropdown, 
             image_video_input, whiteboard_image, preview_images,
             selected_index, frame_data_list
@@ -90,6 +94,7 @@ class HandleFrameEvent:
     def handle_update_word_reading_button(self, 
                                           word_input, word_reading_input,
                                           character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                                          voice_style_input, update_voice_style_strength_slider,
                                           selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                           image_video_input, whiteboard_image_path, 
                                           model_list_state, voice_model_dropdown, 
@@ -115,16 +120,11 @@ class HandleFrameEvent:
                 # 読み方の変更
                 frame_data.reading_line = reading_line
 
-                # メインキャラクターの場合
-                if character_name == self.generate_video.main_character:
-                    voice_style = 'NeutralamazinGood(onmygod)'
-                else:
-                    voice_style = 'Neutral'
-
                 # 音声ファイルの変更
                 audio_file_path = self.create_subtitle_voice.generate_audio(
                         frame_data.subtitle_line, reading_line, 
-                        frame_data.selected_model, frame_data.reading_speed, voice_style
+                        frame_data.selected_model, frame_data.reading_speed, 
+                        frame_data.voice_style, frame_data.voice_style_strength
                         ) 
 
                 # 音声ファイルの変更
@@ -137,6 +137,7 @@ class HandleFrameEvent:
         if result is not None:
             (
                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                voice_style_input, update_voice_style_strength_slider,
                 voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                 image_video_input, whiteboard_image_path, preview_images, 
                 selected_index, frame_data_list_state
@@ -146,6 +147,7 @@ class HandleFrameEvent:
         return (
             new_registered_words_table,
             character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+            voice_style_input, update_voice_style_strength_slider,
             voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
             image_video_input, whiteboard_image_path, preview_images, 
             selected_index, frame_data_list_state
@@ -154,6 +156,7 @@ class HandleFrameEvent:
 
     def update_subtitle_reading(self,   
                                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                                voice_style_input, update_voice_style_strength_slider,
                                 selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                 image_video_input, whiteboard_image_path, 
                                 model_list_state, voice_model_dropdown, 
@@ -171,6 +174,7 @@ class HandleFrameEvent:
         # フレームデータを更新
         self.update_frame_data(current_frame_data, 
                                character_name, subtitle_line, reading_line, update_reading_speed_slider, 
+                               voice_style_input, update_voice_style_strength_slider,
                                selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                model_list_state, voice_model_dropdown, 
                                image_video_input, whiteboard_image_path)
@@ -179,9 +183,9 @@ class HandleFrameEvent:
         return self.update_ui_elements(selected_index, frame_data_list_state)
 
 
-
     def handle_gallery_click(self, evt: gr.SelectData, 
                 character_name,subtitle_input, reading_input, update_reading_speed_slider,
+                voice_style_input, update_voice_style_strength_slider,
                 selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                 image_video_input, whiteboard_image_path, 
                 model_list_state, voice_model_dropdown,
@@ -195,6 +199,7 @@ class HandleFrameEvent:
         # フレームデータを更新
         self.update_frame_data(current_frame_data, 
                                character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                               voice_style_input, update_voice_style_strength_slider,
                                selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                model_list_state, voice_model_dropdown, 
                                image_video_input, whiteboard_image_path)
@@ -205,6 +210,7 @@ class HandleFrameEvent:
 
     def on_update_reading_click(self, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -225,6 +231,7 @@ class HandleFrameEvent:
         # フレームデータを更新
         self.update_frame_data(current_frame_data, 
                                character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                               voice_style_input, update_voice_style_strength_slider,
                                selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                model_list_state, voice_model_dropdown, 
                                image_video_input, whiteboard_image_path)
@@ -234,6 +241,7 @@ class HandleFrameEvent:
 
     def update_frame_data(self, current_frame_data: FrameData,
                         character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                        voice_style_input, update_voice_style_strength_slider,
                         selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                         model_list_state, voice_model_dropdown, 
                         image_video_input, whiteboard_image_path):
@@ -263,15 +271,10 @@ class HandleFrameEvent:
         if (
             current_frame_data.reading_line != reading_input
                 or current_frame_data.reading_speed != update_reading_speed_slider
-                # or current_frame_data.selected_model != voice_model_dropdown
+                or current_frame_data.selected_model[0] != voice_model_dropdown
                ):
             # 変更フラグをTrueにする
             change_flag = True
-
-            # print(
-            #     f"current_frame_data.selected_model -> {current_frame_data.selected_model} \n"
-            #     f"voice_model_dropdown -> {voice_model_dropdown} \n"
-            # )
 
             # 読み方の変更
             current_frame_data.reading_line = reading_input
@@ -279,15 +282,11 @@ class HandleFrameEvent:
             # 読み方の速度の変更
             current_frame_data.reading_speed = update_reading_speed_slider
 
-            # メインキャラクターの場合
-            if character_name == self.generate_video.main_character:
-                # if voice_model_dropdown == None:
-                #     voice_model_dropdown = model_list_state[1][0]
-                voice_style = 'NeutralamazinGood(onmygod)'
-            else:
-                # if voice_model_dropdown == None:
-                #     voice_model_dropdown = model_list_state[0][0]
-                voice_style = 'Neutral'
+            # 音声スタイルの変更
+            current_frame_data.voice_style = voice_style_input
+
+            # 音声スタイル強度の変更
+            current_frame_data.voice_style_strength = update_voice_style_strength_slider
 
             # 選択されたモデルの名前を取得
             selected_model_tuple = self.create_subtitle_voice.get_selected_mode_id(voice_model_dropdown, model_list_state)
@@ -295,9 +294,10 @@ class HandleFrameEvent:
 
             # 音声ファイルの変更
             audio_file_path = self.create_subtitle_voice.generate_audio(
-                    subtitle_input, reading_input, 
-                    selected_model_tuple, update_reading_speed_slider, voice_style
-                    ) 
+                                                            subtitle_input, reading_input, 
+                                                            selected_model_tuple, update_reading_speed_slider, 
+                                                            voice_style_input, update_voice_style_strength_slider
+                                                            ) 
             current_frame_data.audio_file = audio_file_path
 
         # 感情の変更
@@ -327,19 +327,9 @@ class HandleFrameEvent:
             current_frame_data.preview_image = preview_image_path
 
 
-
-    # def on_video_creation_complete(self, task, selected_index, frame_data_list):
-    #     try:
-    #         task.result()  # 例外が発生していないか確認
-    #         print("動画の作成が完了しました")
-    #         # UIコンポーネントを更新
-    #         self.update_ui_elements(selected_index, frame_data_list)
-    #     except Exception as e:
-    #         print(f"動画の作成中にエラーが発生しました: {e}")
-
-
     async def create_video(self, output_folder_input,
                             character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                            voice_style_input, update_voice_style_strength_slider,
                             selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                             image_video_input, whiteboard_image_path, 
                             model_list_state, voice_model_dropdown,
@@ -350,6 +340,7 @@ class HandleFrameEvent:
         result = None
         result = self.on_update_reading_click(
                                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                                voice_style_input, update_voice_style_strength_slider,
                                 selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                 image_video_input, whiteboard_image_path, 
                                 model_list_state, voice_model_dropdown,
@@ -372,6 +363,7 @@ class HandleFrameEvent:
         if result is not None:
             (
                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                voice_style_input, update_voice_style_strength_slider,
                 voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                 image_video_input, whiteboard_image_path, preview_images, 
                 selected_index, frame_data_list_state
@@ -380,6 +372,7 @@ class HandleFrameEvent:
         # 動画ファイルパスを返す
         return (
             character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+            voice_style_input, update_voice_style_strength_slider,
             voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
             image_video_input, whiteboard_image_path, preview_images, 
             selected_index, frame_data_list_state, 

@@ -6,6 +6,7 @@ from create_subtitle_voice import CreateSubtitleVoice
 from setup_vtuber_keys import SetupVtuberKeys
 from render import FrameData
 from katakana_converter import KatakanaConverter
+from constants import TALK_CHARACTER
 
 
 class GenerateVideo:
@@ -103,6 +104,7 @@ class GenerateVideo:
                                 csv_file_input, 
                                 character_name_input, reading_speed_slider, voice_synthesis_model_dropdown, 
                                 sub_character_name_input, sub_reading_speed_slider, sub_voice_synthesis_model_dropdown,
+                                voice_style_dropdown, voice_style_strength_slider, sub_voice_style_dropdown, sub_voice_style_strength_slider,
                                 model_list_state, 
                                 registered_words_table, emotion_shortcuts_state, actions_state):
         """
@@ -111,25 +113,17 @@ class GenerateVideo:
         from handle_frame_event import HandleFrameEvent
         handle_frame_event = HandleFrameEvent(self)
 
-        # frame_data_list:list[FrameData] = []
         self.frame_data_list.clear() # フレームデータのリストをクリア
-        # print(f"frame_data_list: {self.frame_data_list}")
 
         delete_tmp_files() #tmpフォルダーの中身を全て削除する
 
-        # 半角スペースで区切られた単語を分割し、重複を避けて辞書に追加・設定ファイルを更新
-        # self.katakana_converter.split_words()
-
         self.main_character = character_name_input#メインキャラクターを設定
 
-        # CSVファイルからキャラクター・セリフ情報を取得
-        # character_lines = None
-        character_lines = self.create_subtitle_voice.load_csv_data(csv_file_input)#キャラクター・セリフ情報を取得
+        global TALK_CHARACTER
+        TALK_CHARACTER = character_name_input
 
-        # print(f"character_lines: {character_lines}")
-        # print(f"model_list_state: {model_list_state}")
-        # print(f"emotion_shortcuts_state: {emotion_shortcuts_state}")
-        # print(f"actions_state: {actions_state}")
+        # CSVファイルからキャラクター・セリフ情報を取得
+        character_lines = self.create_subtitle_voice.load_csv_data(csv_file_input)#キャラクター・セリフ情報を取得
 
         # # OBSの背景・Vキャラ・Vキャラ画像を取得
         self.obs_background_image = self.edit_medias.create_obs_screenshot_image("background")
@@ -144,34 +138,34 @@ class GenerateVideo:
         self.obs_whiteboard_image_path = save_as_temp_file(self.obs_whiteboard_image)
         self.obs_subtitle_image_path = save_as_temp_file(self.obs_subtitle_image)
 
+
         # キャラクター・セリフ情報を処理
         for character, line in character_lines:
 
             if character == self.main_character:
                 voice_synthesis_model = voice_synthesis_model_dropdown
-                # if voice_synthesis_model_dropdown == None:
-                #     voice_synthesis_model = model_list_state[1][0]
                 reading_speed = reading_speed_slider
-                voice_style = "NeutralamazinGood(onmygod)"
+                reading_speed = reading_speed_slider
+                voice_style = voice_style_dropdown
+                voice_style_strength = voice_style_strength_slider
                 
             elif character == sub_character_name_input:
                 voice_synthesis_model = sub_voice_synthesis_model_dropdown
-                # if sub_voice_synthesis_model_dropdown == None:
-                #     voice_synthesis_model = model_list_state[0][0]
                 reading_speed = sub_reading_speed_slider
-                voice_style = "Neutral"
+                voice_style = sub_voice_style_dropdown
+                voice_style_strength = sub_voice_style_strength_slider
             
             # 元のセリフを字幕用として変数に保持します。
             # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
             subtitle_line, reading_line = self.create_subtitle_voice.process_line(line)
     
             # 選択された音声合成モデルの名前を取得
-            # print(f"voice_synthesis_model: {voice_synthesis_model}")
             selected_model_tuple = self.create_subtitle_voice.get_selected_mode_id(voice_synthesis_model, model_list_state)
 
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
             audio_file = self.create_subtitle_voice.generate_audio(
-                                subtitle_line, reading_line, selected_model_tuple, reading_speed, voice_style)
+                                            subtitle_line, reading_line, 
+                                            selected_model_tuple, reading_speed, voice_style, voice_style_strength)
 
             # キャラクター事にショートカットキーを選択
             emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
@@ -191,6 +185,7 @@ class GenerateVideo:
                 reading_speed=reading_speed_slider,
                 selected_model=selected_model_tuple,
                 voice_style=voice_style,
+                voice_style_strength=voice_style_strength,
                 audio_file=audio_file,
                 emotion_shortcut=emotion_shortcut,
                 motion_shortcut=motion_shortcut,

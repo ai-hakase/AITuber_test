@@ -25,13 +25,19 @@ class UI:
         # 設定ファイルの読み込み
         with open(DEFAULT_SETTING_FILE, "r", encoding="utf-8") as f:
             settings = json.load(f)
-
+        
         self.character_name = settings["character_name"]
         self.voice_synthesis_model = settings["voice_synthesis_model"]
+        self.voice_style = settings["voice_style"]
+        self.voice_style_strength = settings["voice_style_strength"]
+        self.reading_speed = settings["reading_speed"]
+
         self.sub_character_name = settings["sub_character_name"]
         self.sub_voice_synthesis_model = settings["sub_voice_synthesis_model"]
-        self.reading_speed = settings["reading_speed"]
+        self.sub_voice_style = settings["sub_voice_style"]
+        self.sub_voice_style_strength = settings["sub_voice_style_strength"]
         self.sub_reading_speed = settings["sub_reading_speed"]
+
         self.output_folder = settings["output_folder"]
         self.bgm_file = settings["bgm_file"]
         self.background_video_file = settings["background_video_file"]
@@ -86,22 +92,20 @@ class UI:
                             model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
                             model_list_state = gr.State(model_list)  # モデル情報のタプルを保持
                             with gr.Column(scale=1):
-                                # キャラ
+                                # mainキャラ
                                 character_name_input = gr.Textbox(label="メインキャラクター名", value=self.character_name, interactive=True)
                                 voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.voice_synthesis_model)
+                                voice_style_dropdown = gr.Textbox(label="音声スタイル", value=self.voice_style)
+                                voice_style_strength_slider = gr.Slider(0, 10, value=self.voice_style_strength, step=0.1, label="音声スタイル強度", interactive=True)
                                 reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度", interactive=True)
                             with gr.Column(scale=1):
-                                # キャラ
+                                # subキャラ
                                 sub_character_name_input = gr.Textbox(label="サブキャラクター名", value=self.sub_character_name, interactive=True)
-                                # model_list, model_names = self.create_subtitle_voice.fetch_voice_synthesis_models()
                                 sub_voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.sub_voice_synthesis_model, interactive=True)
+                                sub_voice_style_dropdown = gr.Textbox(label="音声スタイル", value=self.sub_voice_style)
+                                sub_voice_style_strength_slider = gr.Slider(0, 10, value=self.sub_voice_style_strength, step=0.1, label="音声スタイル強度", interactive=True)
                                 sub_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.sub_reading_speed, step=0.01, label="読み上げ速度", interactive=True)
 
-                        # 読み方を登録するボタンを追加
-                        with gr.Row():
-                            with gr.Column(scale=3):
-                                register_reading_input = gr.Textbox(label="読み方を登録（カンマ、スペース、コロン、ピリオド などで区切る）", lines=12, max_lines=12, interactive=True, scale=3)
-                            register_reading_button = gr.Button("登録", scale=1)
 
                     with gr.Tab("読み方一覧"):
                         with gr.Row():
@@ -115,6 +119,13 @@ class UI:
                                 # value=[[word, reading] for word, reading in self.dics.items()]
                             )
                             update_dics_button = gr.Button("更新", scale=1)
+
+                        # 読み方を登録するボタンを追加
+                        with gr.Accordion("読み方を一括登録", open=False):
+                            with gr.Row():
+                                with gr.Column(scale=3):
+                                    register_reading_input = gr.Textbox(label="読み方を一括登録（カンマ、スペース、コロン、ピリオド などで区切る）", lines=12, max_lines=12, interactive=True, scale=3)
+                                register_reading_button = gr.Button("一括登録", scale=1)
 
                     # hotkeys = await self.handle_gallery_event.load_hotkeys()
                     # hotkeys_data = [[hotkey['name'], hotkey['file'], hotkey['hotkeyID']] for hotkey in hotkeys]
@@ -180,13 +191,6 @@ class UI:
             # generate_video_button = gr.Button("感情分析・動画準備開始\n（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", size="lg", interactive=True)
 
             with gr.Row():
-                with gr.Column(scale=1):
-                    test_playback_button = gr.Audio(type="filepath", label="テスト再生")
-                    preview_images = gr.Gallery(
-                        label="画像/動画フレーム一覧", 
-                        elem_id="frame_gallery", 
-                        # scale=2,
-                        )
                     
                 with gr.Column():
                     with gr.Tab("テキスト・画像・動画編集"):
@@ -200,6 +204,8 @@ class UI:
                                         character_name = gr.Textbox(label="キャラクター名", interactive=True)
                                         voice_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル")
                                     update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
+                                    voice_style_input = gr.Textbox(label="音声スタイル")
+                                    update_voice_style_strength_slider = gr.Slider(0, 10, step=0.1, label="音声スタイル強度", interactive=True)
 
                                 # セリフの設定
                                 with gr.Accordion("セリフの設定", open=False):
@@ -236,13 +242,7 @@ class UI:
                                     height=400
                                     )
                                 # delete_image_video_button = gr.Button("削除", visible=False, scale=1)
-
-                    # with gr.Tab("画像・動画編集"):
-                    #     with gr.Row():
-                    #         update_image_video_button = gr.Button("変更", scale=2)
-                        # preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", interactive=True)
-                        # preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True)
-
+                                
                     with gr.Tab("Vキャラ・モーション設定"):
                     # with gr.Tab("Vキャラ・モーション設定"):
 
@@ -250,6 +250,17 @@ class UI:
                         # character_size_slider = gr.Slider(minimum=50, maximum=200, step=1, label="キャラクターサイズ")
                         emotion_dropdown = gr.Dropdown(label="表情選択")#, choices=["neutral", "happy", "sad", "angry"])
                         motion_dropdown = gr.Dropdown(label="モーション選択")#, choices=["idle", "nod", "shake", "point"])
+
+                with gr.Column(scale=1):
+                    test_playback_button = gr.Audio(type="filepath", label="テスト再生")
+                    preview_images = gr.Gallery(label="画像/動画フレーム一覧", elem_id="frame_gallery")
+
+                    # with gr.Tab("画像・動画編集"):
+                    #     with gr.Row():
+                    #         update_image_video_button = gr.Button("変更", scale=2)
+                        # preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", interactive=True)
+                        # preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True)
+
 
                     # with gr.Accordion("字幕・読み方を一括変更＋辞書登録", open=False):
                     #     word_input = gr.Textbox(label="単語/文章", lines=1)
@@ -331,6 +342,7 @@ class UI:
                 fn=self.handle_frame_event.handle_gallery_click,    
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider, 
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -338,6 +350,7 @@ class UI:
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -350,6 +363,7 @@ class UI:
                 fn=self.handle_frame_event.on_update_reading_click,
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -357,6 +371,7 @@ class UI:
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -369,6 +384,7 @@ class UI:
                 fn=self.handle_frame_event.update_subtitle_reading,
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown, 
@@ -376,6 +392,7 @@ class UI:
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -389,6 +406,7 @@ class UI:
                 inputs=[
                     word_input, word_reading_input,
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -397,6 +415,7 @@ class UI:
                 outputs=[
                     registered_words_table,
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -430,11 +449,13 @@ class UI:
                     csv_file_input, 
                     character_name_input, reading_speed_slider, voice_synthesis_model_dropdown, 
                     sub_character_name_input, sub_reading_speed_slider, sub_voice_synthesis_model_dropdown,
+                    voice_style_dropdown, voice_style_strength_slider, sub_voice_style_dropdown, sub_voice_style_strength_slider,
                     model_list_state, 
                     registered_words_table, emotion_shortcuts_state, actions_state,
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider, 
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -446,13 +467,6 @@ class UI:
                 outputs=[generate_video_button, create_video_button]
             )
 
-            # frame_data_list_state.change(
-            #     fn=self.handle_frame_event.update_ui_elements,
-            #     inputs=[selected_index, frame_data_list_state],
-            #     outputs=[character_name, subtitle_input, reading_input, reading_speed_slider, selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, image_video_input, whiteboard_image_path, preview_images, selected_index],
-            #     show_progress=True,
-            # )
-
 
             # 動画生成開始ボタンのクリックイベント設定
             create_video_button.click(
@@ -460,6 +474,7 @@ class UI:
                 inputs=[
                     output_folder_input, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -467,6 +482,7 @@ class UI:
                     ],
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                    voice_style_input, update_voice_style_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state, 

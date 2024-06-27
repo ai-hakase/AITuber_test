@@ -1,6 +1,9 @@
 import os
 
+# グローバル変数
 TALK_CHARACTER = "葉加瀬あい"
+# 葉加瀬あい
+
 TALKING = "話し方"
 BAYBAY = "バイバイ"
 WAITING = "待機"

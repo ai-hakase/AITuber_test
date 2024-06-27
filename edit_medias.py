@@ -254,7 +254,7 @@ class EditMedia:
         paste_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")
 
         # paste_whiteboard_imageと同じサイズの黒い画像を作成
-        black_image = Image.new('RGBA', (load_whiteboard_image.width-26, load_whiteboard_image.height-4), (0, 0, 0, 220))
+        black_image = Image.new('RGBA', (load_whiteboard_image.width-20, load_whiteboard_image.height-4), (0, 0, 0, 220))
         
         load_explanation_img = load_image_or_video(explanation_media_path).convert("RGBA")
 
