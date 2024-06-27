@@ -10,6 +10,7 @@ class FrameData:
     selected_model: Tuple[str, str, str]
     voice_style: str
     voice_style_strength: float
+    pitch_up_strength: float
     audio_file: str
     emotion_shortcut: str
     motion_shortcut: str

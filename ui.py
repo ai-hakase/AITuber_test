@@ -30,12 +30,14 @@ class UI:
         self.voice_synthesis_model = settings["voice_synthesis_model"]
         self.voice_style = settings["voice_style"]
         self.voice_style_strength = settings["voice_style_strength"]
+        self.pitch_up_strength = settings["pitch_up_strength"]
         self.reading_speed = settings["reading_speed"]
 
         self.sub_character_name = settings["sub_character_name"]
         self.sub_voice_synthesis_model = settings["sub_voice_synthesis_model"]
         self.sub_voice_style = settings["sub_voice_style"]
         self.sub_voice_style_strength = settings["sub_voice_style_strength"]
+        self.sub_pitch_up_strength = settings["sub_pitch_up_strength"]
         self.sub_reading_speed = settings["sub_reading_speed"]
 
         self.output_folder = settings["output_folder"]
@@ -97,6 +99,7 @@ class UI:
                                 voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.voice_synthesis_model)
                                 voice_style_dropdown = gr.Textbox(label="音声スタイル", value=self.voice_style)
                                 voice_style_strength_slider = gr.Slider(0, 10, value=self.voice_style_strength, step=0.1, label="音声スタイル強度", interactive=True)
+                                pitch_up_strength_slider = gr.Slider(-1.0, 1.0 , value=self.pitch_up_strength, step=0.1, label="ピッチ調整", interactive=True)
                                 reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度", interactive=True)
                             with gr.Column(scale=1):
                                 # subキャラ
@@ -104,6 +107,7 @@ class UI:
                                 sub_voice_synthesis_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル", value=self.sub_voice_synthesis_model, interactive=True)
                                 sub_voice_style_dropdown = gr.Textbox(label="音声スタイル", value=self.sub_voice_style)
                                 sub_voice_style_strength_slider = gr.Slider(0, 10, value=self.sub_voice_style_strength, step=0.1, label="音声スタイル強度", interactive=True)
+                                sub_pitch_up_strength_slider = gr.Slider(-1.0, 1.0 , value=self.sub_pitch_up_strength, step=0.1, label="ピッチ調整", interactive=True)
                                 sub_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.sub_reading_speed, step=0.01, label="読み上げ速度", interactive=True)
 
 
@@ -203,9 +207,10 @@ class UI:
                                     with gr.Row():
                                         character_name = gr.Textbox(label="キャラクター名", interactive=True)
                                         voice_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル")
-                                    update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
                                     voice_style_input = gr.Textbox(label="音声スタイル")
                                     update_voice_style_strength_slider = gr.Slider(0, 10, step=0.1, label="音声スタイル強度", interactive=True)
+                                    update_pitch_up_strength_slider = gr.Slider(-1.0, 1.0, step=0.1, label="ピッチ調整", interactive=True)
+                                    update_reading_speed_slider = gr.Slider(0.5, 2.0, step=0.01, label="読み上げ速度")
 
                                 # セリフの設定
                                 with gr.Accordion("セリフの設定", open=False):
@@ -343,6 +348,7 @@ class UI:
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider, 
+                    update_pitch_up_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -351,6 +357,7 @@ class UI:
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -364,6 +371,7 @@ class UI:
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -372,6 +380,7 @@ class UI:
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -385,6 +394,7 @@ class UI:
                 inputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown, 
@@ -393,6 +403,7 @@ class UI:
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -407,6 +418,7 @@ class UI:
                     word_input, word_reading_input,
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -416,6 +428,7 @@ class UI:
                     registered_words_table,
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -449,6 +462,7 @@ class UI:
                     csv_file_input, 
                     character_name_input, reading_speed_slider, voice_synthesis_model_dropdown, 
                     sub_character_name_input, sub_reading_speed_slider, sub_voice_synthesis_model_dropdown,
+                    pitch_up_strength_slider, sub_pitch_up_strength_slider,
                     voice_style_dropdown, voice_style_strength_slider, sub_voice_style_dropdown, sub_voice_style_strength_slider,
                     model_list_state, 
                     registered_words_table, emotion_shortcuts_state, actions_state,
@@ -456,6 +470,7 @@ class UI:
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider, 
+                    update_pitch_up_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state
@@ -475,6 +490,7 @@ class UI:
                     output_folder_input, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
                     model_list_state, voice_model_dropdown,
@@ -483,6 +499,7 @@ class UI:
                 outputs=[
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     voice_style_input, update_voice_style_strength_slider,
+                    update_pitch_up_strength_slider,
                     voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, preview_images, 
                     selected_index, frame_data_list_state, 

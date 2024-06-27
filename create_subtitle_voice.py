@@ -1,8 +1,11 @@
 import csv
 import requests
 
+from pydub import AudioSegment
+from pydub.playback import play
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
+
 from utils import save_as_temp_file_audio
 from katakana_converter import KatakanaConverter
 from constants import TALK_CHARACTER
@@ -91,11 +94,26 @@ class CreateSubtitleVoice:
         return selected_model_tuple
 
 
+    def pitch_up_audio(self, file_path, pitch_up_strength):
+        sound = AudioSegment.from_file(file_path, format="wav")
+
+        # 半音上げる（1200セント）
+        octaves = pitch_up_strength
+        new_sample_rate = int(sound.frame_rate * (2.0 ** octaves))
+        pitched_sound = sound._spawn(sound.raw_data, overrides={'frame_rate': new_sample_rate})
+        pitched_sound = pitched_sound.set_frame_rate(44000)  # 元のサンプリングレートに戻す
+
+        # 上書き保存
+        pitched_sound.export(file_path, format="wav")
+
+        return file_path
+
 
     # 音声ファイルを生成する関数
     def generate_audio(self, 
                        subtitle_line, reading_line, 
-                       selected_model_tuple, reading_speed_slider, voice_style, voice_style_strength):
+                       selected_model_tuple, reading_speed_slider, voice_style, voice_style_strength,
+                       pitch_up_strength):
         """
         音声ファイルを生成する関数
         Args:
@@ -110,8 +128,8 @@ class CreateSubtitleVoice:
         model_name, model_id, speaker_id = selected_model_tuple
 
         # グローバル変数を取得
-        global TALK_CHARACTER
-        print(f"TALK_CHARACTER: {TALK_CHARACTER}")
+        # global TALK_CHARACTER
+        # print(f"TALK_CHARACTER: {TALK_CHARACTER}")
         
         # リクエストヘッダー
         headers = {
@@ -157,7 +175,10 @@ class CreateSubtitleVoice:
             # リクエストを送信し、レスポンスを取得
             with urlopen(req) as response:
                 temp_file_path = save_as_temp_file_audio(response.read())
-                return temp_file_path
+
+                audio_file = self.pitch_up_audio(temp_file_path, pitch_up_strength)
+
+                return audio_file
         except Exception as e:
             print(f"Error occurred: {str(e)}")
             return None

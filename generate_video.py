@@ -1,4 +1,5 @@
 from PIL import Image
+
 from utils import save_as_temp_file, delete_tmp_files
 from edit_medias import EditMedia
 from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
@@ -104,6 +105,7 @@ class GenerateVideo:
                                 csv_file_input, 
                                 character_name_input, reading_speed_slider, voice_synthesis_model_dropdown, 
                                 sub_character_name_input, sub_reading_speed_slider, sub_voice_synthesis_model_dropdown,
+                                pitch_up_strength_slider, sub_pitch_up_strength_slider,
                                 voice_style_dropdown, voice_style_strength_slider, sub_voice_style_dropdown, sub_voice_style_strength_slider,
                                 model_list_state, 
                                 registered_words_table, emotion_shortcuts_state, actions_state):
@@ -144,16 +146,17 @@ class GenerateVideo:
 
             if character == self.main_character:
                 voice_synthesis_model = voice_synthesis_model_dropdown
-                reading_speed = reading_speed_slider
-                reading_speed = reading_speed_slider
                 voice_style = voice_style_dropdown
                 voice_style_strength = voice_style_strength_slider
+                pitch_up_strength = pitch_up_strength_slider
+                reading_speed = reading_speed_slider
                 
             elif character == sub_character_name_input:
                 voice_synthesis_model = sub_voice_synthesis_model_dropdown
-                reading_speed = sub_reading_speed_slider
                 voice_style = sub_voice_style_dropdown
                 voice_style_strength = sub_voice_style_strength_slider
+                pitch_up_strength = sub_pitch_up_strength_slider
+                reading_speed = sub_reading_speed_slider
             
             # 元のセリフを字幕用として変数に保持します。
             # 辞書機能で英語テキストのカタカナ翻訳を行ったセリフを読み方用として変数に保持します。
@@ -165,8 +168,9 @@ class GenerateVideo:
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
             audio_file = self.create_subtitle_voice.generate_audio(
                                             subtitle_line, reading_line, 
-                                            selected_model_tuple, reading_speed, voice_style, voice_style_strength)
-
+                                            selected_model_tuple, reading_speed, voice_style, voice_style_strength,
+                                            pitch_up_strength)
+                
             # キャラクター事にショートカットキーを選択
             emotion_shortcut, motion_shortcut = self.setup_vtuber_keys.get_shortcut_key(emotion_shortcuts_state, actions_state, character, subtitle_line)
 
@@ -186,6 +190,7 @@ class GenerateVideo:
                 selected_model=selected_model_tuple,
                 voice_style=voice_style,
                 voice_style_strength=voice_style_strength,
+                pitch_up_strength=pitch_up_strength,
                 audio_file=audio_file,
                 emotion_shortcut=emotion_shortcut,
                 motion_shortcut=motion_shortcut,
