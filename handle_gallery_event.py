@@ -211,7 +211,7 @@ class HandleGalleryEvent:
         old_dics = settings["dics"]
 
         # DataFrame を辞書に変換
-        print(f"registered_words_table: {registered_words_table}")
+        # print(f"registered_words_table: {registered_words_table}")
 
             # DataFrame を辞書に変換
         dics = {row[0]: row[1] for row in registered_words_table if row[0] and row[1]}

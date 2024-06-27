@@ -9,6 +9,7 @@ from generate_video import GenerateVideo
 from create_subtitle_voice import CreateSubtitleVoice
 from handle_gallery_event import HandleGalleryEvent
 from handle_frame_event import HandleFrameEvent
+from vts_hotkey_trigger import VTubeStudioHotkeyTrigger
 
 class UI:
     def __init__(self):        
@@ -60,7 +61,8 @@ class UI:
             whiteboard_image_path = gr.File(label="", visible=False)
             subtitle_image_path = gr.File(label="", visible=False)
             # hidden_output = gr.JSON(visible=False)
-            frame_data_list_state = gr.State(self.generate_video.frame_data_list)
+            frame_data_list_state = gr.State()
+            # frame_data_list_state = gr.State(self.generate_video.frame_data_list)
 
             with gr.Row():
 
@@ -72,7 +74,7 @@ class UI:
                     with gr.Row():
                         with gr.Column(scale=3):
                             generate_video_button = gr.Button("感情分析・動画準備開始\n（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", size="lg", interactive=True)
-                        create_video_button = gr.Button("動画生成開始", size="lg", interactive=False)
+                        # create_video_button = gr.Button("動画生成開始", size="lg", interactive=False)
 
                     # 動画準備
                     # 変数をコンソールに表示するボタン
@@ -175,6 +177,8 @@ class UI:
                             new_settings_name_input = gr.Textbox(label="新規設定ファイル名")
                             save_new_settings_button = gr.Button("新規設定ファイル保存")
 
+            # generate_video_button = gr.Button("感情分析・動画準備開始\n（英語テキスト翻訳 + 翻訳後のテキストで音声合成）", size="lg", interactive=True)
+
             with gr.Row():
                 with gr.Column(scale=1):
                     test_playback_button = gr.Audio(type="filepath", label="テスト再生")
@@ -187,17 +191,31 @@ class UI:
                 with gr.Column():
                     with gr.Tab("テキスト・画像・動画編集"):
                         with gr.Row():
+                            # 音声合成、セリフ、字幕・読み方を一括変更＋辞書登録の設定
                             with gr.Column(scale=3):
-                                with gr.Row():
-                                    character_name = gr.Textbox(label="キャラクター名", interactive=True)
-                                    voice_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル")
-                                subtitle_input = gr.Textbox(label="セリフ（字幕用）", lines=2)
-                                reading_input = gr.Textbox(label="セリフ（読み方）", lines=2)
-                                update_subtitle_reading_button = gr.Button("字幕をもとに、読み方を自動変更",scale=1)
-                                update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
+
+                                # 音声合成の設定
+                                with gr.Accordion("音声合成の設定", open=False):
+                                    with gr.Row():
+                                        character_name = gr.Textbox(label="キャラクター名", interactive=True)
+                                        voice_model_dropdown = gr.Dropdown(model_names, label="音声合成モデル")
+                                    update_reading_speed_slider = gr.Slider(0.5, 2.0, value=self.reading_speed, step=0.01, label="読み上げ速度")
+
+                                # セリフの設定
+                                with gr.Accordion("セリフの設定", open=False):
+                                    subtitle_input = gr.Textbox(label="セリフ（字幕用）", lines=2)
+                                    reading_input = gr.Textbox(label="セリフ（読み方）", lines=2)
+                                    update_subtitle_reading_button = gr.Button("字幕をもとに、読み方を自動変更",scale=1)
+
+                                # 字幕・読み方を一括変更＋辞書登録
+                                with gr.Accordion("字幕・読み方を一括変更＋辞書登録", open=False):
+                                    word_input = gr.Textbox(label="単語/文章", lines=1)
+                                    word_reading_input = gr.Textbox(label="読み方", lines=1)
+                                    update_word_reading_button = gr.Button("一括変更",scale=1)
+
                             with gr.Row():
                                 update_reading_button = gr.Button("変更",scale=1)
-                        with gr.Column(scale=1):
+                        with gr.Accordion("画像/動画選択", open=True):
                             image_video_input = gr.File(label="画像/動画選択", file_types=["image", "video"], interactive=True, height=400)
                             with gr.Row():
                                 preview_image_output = gr.Image(
@@ -225,7 +243,7 @@ class UI:
                         # preview_image_output = gr.Image(label="画像プレビュー", elem_id="image_preview_output", interactive=True)
                         # preview_video_output = gr.Video(label="動画プレビュー", elem_id="video_preview_output", interactive=True)
 
-                    with gr.Tab("Vキャラ・モーション設定、字幕・読み方を一括変更＋辞書登録"):
+                    with gr.Tab("Vキャラ・モーション設定"):
                     # with gr.Tab("Vキャラ・モーション設定"):
 
                         # character_position_slider = gr.Slider(minimum=0, maximum=100, step=1, label="キャラクター位置")
@@ -233,9 +251,10 @@ class UI:
                         emotion_dropdown = gr.Dropdown(label="表情選択")#, choices=["neutral", "happy", "sad", "angry"])
                         motion_dropdown = gr.Dropdown(label="モーション選択")#, choices=["idle", "nod", "shake", "point"])
 
-                        word_input = gr.Textbox(label="単語/文章", lines=1)
-                        word_reading_input = gr.Textbox(label="読み方", lines=1)
-                        update_word_reading_button = gr.Button("一括変更",scale=1)
+                    # with gr.Accordion("字幕・読み方を一括変更＋辞書登録", open=False):
+                    #     word_input = gr.Textbox(label="単語/文章", lines=1)
+                    #     word_reading_input = gr.Textbox(label="読み方", lines=1)
+                    #     update_word_reading_button = gr.Button("一括変更",scale=1)
                         # with gr.Row():
                         #     with gr.Column(scale=3):
                         #         vtuber_character_output = gr.Interface(
@@ -252,6 +271,9 @@ class UI:
                 with gr.Column(scale=4):
                     video_preview_output = gr.Video(label="生成された動画のプレビュー", visible=False)
                     progress_bar = gr.Progress()
+
+
+            create_video_button = gr.Button("動画生成開始", size="lg", interactive=False)
 
                 # with gr.Column():
                 #     create_video_button = gr.Button("動画生成開始", scale=1, visible=False)
@@ -301,8 +323,6 @@ class UI:
                 inputs=image_video_input,
                 outputs=[preview_image_output, preview_video_output]
             )
-
-
 
 
             # UIコンポーネントの設定
@@ -371,6 +391,7 @@ class UI:
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                     selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                     image_video_input, whiteboard_image_path, 
+                    model_list_state, voice_model_dropdown,
                     selected_index, frame_data_list_state
                     ],
                 outputs=[
@@ -439,8 +460,9 @@ class UI:
                 inputs=[
                     output_folder_input, 
                     character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                    selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                    image_video_input, whiteboard_image_path, preview_images, 
+                    selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                    image_video_input, whiteboard_image_path, 
+                    model_list_state, voice_model_dropdown,
                     selected_index, frame_data_list_state
                     ],
                 outputs=[

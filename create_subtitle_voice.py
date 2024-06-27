@@ -16,7 +16,9 @@ class CreateSubtitleVoice:
 
     # CSVファイルからキャラクター・セリフ情報を取得
     def load_csv_data(self, csv_file_path):
+        self.character_lines = []
         try:
+            # ファイルを開く
             with open(csv_file_path.name, 'r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 for row in reader:
@@ -103,7 +105,7 @@ class CreateSubtitleVoice:
             voice_style (str): 音声スタイル
         """
         # 選択されたモデルの名前、id、話者idを取得
-        print(f"selected_model_tuple: {selected_model_tuple}")
+        # print(f"selected_model_tuple: {selected_model_tuple}")
         model_name, model_id, speaker_id = selected_model_tuple
         
         # リクエストヘッダー

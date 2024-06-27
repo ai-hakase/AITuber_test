@@ -103,6 +103,7 @@ class HandleFrameEvent:
         new_registered_words_table = self.handle_gallery_event.load_dics()
 
         # フレームデータリストの各フレームデータを順に処理
+        # print(f"frame_data_list_state: {frame_data_list_state}")
         for frame_data in frame_data_list_state:
 
             # word_inputがフレームデータのsubtitle_lineに含まれている場合
@@ -116,7 +117,7 @@ class HandleFrameEvent:
 
                 # メインキャラクターの場合
                 if character_name == self.generate_video.main_character:
-                    voice_style = 'NeutralAmazingGood(onmygod)'
+                    voice_style = 'NeutralamazinGood(onmygod)'
                 else:
                     voice_style = 'Neutral'
 
@@ -136,7 +137,7 @@ class HandleFrameEvent:
         if result is not None:
             (
                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                 image_video_input, whiteboard_image_path, preview_images, 
                 selected_index, frame_data_list_state
             ) = result
@@ -145,7 +146,7 @@ class HandleFrameEvent:
         return (
             new_registered_words_table,
             character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-            selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+            voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
             image_video_input, whiteboard_image_path, preview_images, 
             selected_index, frame_data_list_state
         ) 
@@ -259,11 +260,18 @@ class HandleFrameEvent:
             current_frame_data.subtitle_image_path=subtitle_image_path
 
         # 読み方の変更
-        if (current_frame_data.reading_line != reading_input
+        if (
+            current_frame_data.reading_line != reading_input
                 or current_frame_data.reading_speed != update_reading_speed_slider
-                or current_frame_data.selected_model != voice_model_dropdown):
+                # or current_frame_data.selected_model != voice_model_dropdown
+               ):
             # 変更フラグをTrueにする
             change_flag = True
+
+            # print(
+            #     f"current_frame_data.selected_model -> {current_frame_data.selected_model} \n"
+            #     f"voice_model_dropdown -> {voice_model_dropdown} \n"
+            # )
 
             # 読み方の変更
             current_frame_data.reading_line = reading_input
@@ -331,10 +339,11 @@ class HandleFrameEvent:
 
 
     async def create_video(self, output_folder_input,
-                           character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                           selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
-                           image_video_input, whiteboard_image_path, preview_images, 
-                           selected_index, frame_data_list_state: list[FrameData]):
+                            character_name, subtitle_input, reading_input, update_reading_speed_slider, 
+                            selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
+                            image_video_input, whiteboard_image_path, 
+                            model_list_state, voice_model_dropdown,
+                            selected_index, frame_data_list_state: list[FrameData]):
         """
         動画作成ボタンがクリックされたときの処理
         """
@@ -343,6 +352,7 @@ class HandleFrameEvent:
                                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
                                 selected_model_tuple_state, emotion_dropdown, motion_dropdown, 
                                 image_video_input, whiteboard_image_path, 
+                                model_list_state, voice_model_dropdown,
                                 selected_index, frame_data_list_state
                                 )
 
@@ -362,7 +372,7 @@ class HandleFrameEvent:
         if result is not None:
             (
                 character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-                selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+                voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
                 image_video_input, whiteboard_image_path, preview_images, 
                 selected_index, frame_data_list_state
             ) = result
@@ -370,10 +380,9 @@ class HandleFrameEvent:
         # 動画ファイルパスを返す
         return (
             character_name, subtitle_input, reading_input, update_reading_speed_slider, 
-            selected_model_tuple_state, test_playback_button, emotion_dropdown, motion_dropdown, 
+            voice_model_dropdown, test_playback_button, emotion_dropdown, motion_dropdown, 
             image_video_input, whiteboard_image_path, preview_images, 
             selected_index, frame_data_list_state, 
-            # gr.update(value=output_file_path, visible=False) 
             gr.update(value=output_file_path, visible=True) 
         ) 
     

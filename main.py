@@ -31,7 +31,7 @@ def start_process(process_path):
 async def start_vts_studio():
     """VTube Studioを起動する関数"""
     start_process(VTUBE_STUDIO_SHORTCUT_PATH)
-    await asyncio.sleep(20)#25秒待つ
+    await asyncio.sleep(30)#25秒待つ
     vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
     await vts_hotkey_trigger.init_vts_character()
 
@@ -53,6 +53,9 @@ async def main():
     else:
         print("VTube Studioを起動します。")
         asyncio.create_task(start_vts_studio())#非同期でVTube Studioを起動
+
+    vts_hotkey_trigger = VTubeStudioHotkeyTrigger()
+    await vts_hotkey_trigger.init_vts_character()
 
 
     # Style-Bert-VITS2のAPIが実行中かどうかを確認

@@ -111,7 +111,7 @@ class GenerateVideo:
         from handle_frame_event import HandleFrameEvent
         handle_frame_event = HandleFrameEvent(self)
 
-        # global frame_data_list # グローバル変数にすることで、関数内でもフレームデータのリストにアクセスできるようになる
+        # frame_data_list:list[FrameData] = []
         self.frame_data_list.clear() # フレームデータのリストをクリア
         # print(f"frame_data_list: {self.frame_data_list}")
 
@@ -121,10 +121,15 @@ class GenerateVideo:
         # self.katakana_converter.split_words()
 
         self.main_character = character_name_input#メインキャラクターを設定
-        # print(f"model_list_state: {model_list_state}")
 
         # CSVファイルからキャラクター・セリフ情報を取得
+        # character_lines = None
         character_lines = self.create_subtitle_voice.load_csv_data(csv_file_input)#キャラクター・セリフ情報を取得
+
+        # print(f"character_lines: {character_lines}")
+        # print(f"model_list_state: {model_list_state}")
+        # print(f"emotion_shortcuts_state: {emotion_shortcuts_state}")
+        # print(f"actions_state: {actions_state}")
 
         # # OBSの背景・Vキャラ・Vキャラ画像を取得
         self.obs_background_image = self.edit_medias.create_obs_screenshot_image("background")
@@ -138,7 +143,6 @@ class GenerateVideo:
         # ホワイドボード画像と字幕画像を保存
         self.obs_whiteboard_image_path = save_as_temp_file(self.obs_whiteboard_image)
         self.obs_subtitle_image_path = save_as_temp_file(self.obs_subtitle_image)
-
 
         # キャラクター・セリフ情報を処理
         for character, line in character_lines:
@@ -162,7 +166,7 @@ class GenerateVideo:
             subtitle_line, reading_line = self.create_subtitle_voice.process_line(line)
     
             # 選択された音声合成モデルの名前を取得
-            print(f"voice_synthesis_model: {voice_synthesis_model}")
+            # print(f"voice_synthesis_model: {voice_synthesis_model}")
             selected_model_tuple = self.create_subtitle_voice.get_selected_mode_id(voice_synthesis_model, model_list_state)
 
             # Style-Bert-VITS2のAPIを使用して、セリフのテキストの読み上げを作成読み上げ音声ファイルを生成
@@ -198,6 +202,8 @@ class GenerateVideo:
             )
             self.frame_data_list.append(frame_data)
 
-        print(f"動画の準備が完了しました")
+        # self.frame_data_list = frame_data_list  # 新しいリストで置き換える
+        print(f"動画の準備が完了しました。フレームデータのリストの長さ: {len(self.frame_data_list)}")
+
         return handle_frame_event.update_ui_elements(selected_index = 0, frame_data_list = self.frame_data_list)
     

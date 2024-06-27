@@ -118,9 +118,15 @@ class VTubeStudioHotkeyTrigger:
         if self.authentication_token == "":
             self.authentication_token = await self.request_token()
             # ここでトークンをファイルに保存
-            with open('vts_settings.yml', 'w') as f:
-                # AUTHENTICATION_TOKEN: ""の行のみを書き換える
-                f.write(f"AUTHENTICATION_TOKEN: {self.authentication_token} \n VTUBE_STUDIO_URI: {self.websocket_uri} \n PLUGIN_NAME: {self.plugin_name} \n PLUGIN_DEVELOPER: {self.plugin_developer} \n ")
+            with open('vts_settings.yml', 'w', encoding='utf-8') as f:
+                settings_data = {
+                    "AUTHENTICATION_TOKEN": self.authentication_token,
+                    "VTUBE_STUDIO_URI": self.websocket_uri,
+                    "PLUGIN_NAME": self.plugin_name,
+                    "PLUGIN_DEVELOPER": self.plugin_developer
+                }
+                yaml.dump(settings_data, f, default_flow_style=False)  # YAML形式で保存
+
         # 認証トークンが取得できた場合、認証処理を行う
         if self.authentication_token:
             # print(f"Token: {self.authentication_token}")

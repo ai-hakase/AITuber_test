@@ -2,7 +2,7 @@ import torch
 import random
 
 from transformers import AutoTokenizer, LukeConfig, AutoModelForSequenceClassification
-from constants import TALKING, WAITING, BAYBAY, EMOTIONS
+from constants import TALKING, WAITING, EMOTIONS
 
 
 # デバイスの設定

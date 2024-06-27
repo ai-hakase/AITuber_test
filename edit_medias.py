@@ -252,6 +252,9 @@ class EditMedia:
         # ホワイトボード画像と解説画像を読み込み
         load_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")
         paste_whiteboard_image = Image.open(whiteboard_image_path).convert("RGBA")
+
+        # paste_whiteboard_imageと同じサイズの黒い画像を作成
+        black_image = Image.new('RGBA', (load_whiteboard_image.width-26, load_whiteboard_image.height-4), (0, 0, 0, 220))
         
         load_explanation_img = load_image_or_video(explanation_media_path).convert("RGBA")
 
@@ -269,6 +272,7 @@ class EditMedia:
         explanation_y = (load_whiteboard_image.height - load_explanation_img.height) // 2
 
         # ホワイトボード画像に解説画像を合成
+        load_whiteboard_image.paste(black_image, (4, 4), mask=black_image)
         load_whiteboard_image.paste(load_explanation_img, (explanation_x, explanation_y))
         load_whiteboard_image.paste(paste_whiteboard_image, (0, 0), mask=paste_whiteboard_image)
 
